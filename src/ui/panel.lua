@@ -2,7 +2,7 @@ local Panel = {}
 
 -- UI Configuration
 local UI_TITLE = "🐰 BunnyBot Pro"
-local menu_options = {"🚀 Start Script", "🛑 Stop Script", "⚙️ Calibration", "❌ Exit"}
+local menu_options = {"🚀 Start Script", "🛑 Stop Script", "⚙️ Calibration", "🧙 Re-Run Setup", "❌ Exit"}
 
 function Panel.show()
     -- This uses a standard Android-Lua interface pattern
@@ -18,6 +18,14 @@ function Panel.show()
         local Calibration = require("src.core.calibration")
         Calibration.run()
     elseif choice == 4 then
+        local Wizard = require("src.core.wizard")
+        Wizard.runWizard()
+        -- Reload config
+        if Wizard.loadConfig() then
+             local Detector = require("src.core.detector")
+             Detector.config.safeColor = Wizard.config.path_color
+        end
+    elseif choice == 5 then
         os.exit()
     end
 end
