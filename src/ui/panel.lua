@@ -15,7 +15,8 @@ function Panel.show()
         if stopAutomation then stopAutomation() end
         gg.toast("Script Paused.")
     elseif choice == 3 then
-        if runCalibration then runCalibration() end
+        local Calibration = require("src.core.calibration")
+        Calibration.run()
     elseif choice == 4 then
         os.exit()
     end

@@ -1,28 +1,17 @@
 local Detector = {}
-local Input = require("src.core.input") -- dependency
+local Input = require("src.core.input")
+local Calibration = require("src.core.calibration")
 
--- Dynamic Configuration
 Detector.config = {
-    pathColor = 0xFFFFFF,
     tolerance = 10,
-    offsetY_pct = 0.2, -- 20% from bottom
-    offsetX_pct = 0.1, -- 10% from center
-    centerX = 0,
-    centerY = 0,
-    isRunning = false
+    isRunning = false,
+    ignoreSide = nil, -- 'left' or 'right' or nil
+    ignoreTimer = 0
 }
 
--- Global Control Functions (Bridged for UI)
+-- Global Control Functions
 function startAutomation()
     Detector.config.isRunning = true
-    -- Initialize specific screen values on start if not set
-    if Detector.config.centerX == 0 then
-        -- Default fallback if calibration didn't run
-        -- In GG, we might need a way to get screen size. 
-        -- For now, we assume 1080p if not calibrated.
-        Detector.config.centerX = 540
-        Detector.config.centerY = 1920 / 2
-    end
     print("BunnyBot: Started")
 end
 
@@ -31,56 +20,88 @@ function stopAutomation()
     print("BunnyBot: Stopped")
 end
 
-function runCalibration()
-    gg.toast("Tap CENTER of path in 2 seconds...")
-    gg.sleep(2000)
-    if getPixelColor then
-        -- Mock center grab
-        local c = getPixelColor(540, 1500)
-        Detector.config.pathColor = c
-        gg.alert("Calibrated Path Color: " .. c)
-    else
-        gg.alert("Unable to access getPixelColor")
-    end
-end
-
--- Check if a color matches the path color within tolerance
-local function isPath(color)
+-- Color match with tolerance
+local function isPath(color, targetColor)
     if color == -1 then return false end
     
     local r = (color >> 16) & 0xFF
     local g = (color >> 8) & 0xFF
     local b = color & 0xFF
 
-    local tr = (Detector.config.pathColor >> 16) & 0xFF
-    local tg = (Detector.config.pathColor >> 8) & 0xFF
-    local tb = Detector.config.pathColor & 0xFF
+    local tr = (targetColor >> 16) & 0xFF
+    local tg = (targetColor >> 8) & 0xFF
+    local tb = targetColor & 0xFF
 
     local diff = math.abs(r - tr) + math.abs(g - tg) + math.abs(b - tb)
     return diff <= Detector.config.tolerance
 end
 
--- Core Logic
 function Detector.update()
     if not Detector.config.isRunning then return end
-
     if not getPixelColor then return end
 
-    -- Recalculate based on current config (in case screen size changes?)
-    -- Ideally static, but allows tuning
-    local offX = Detector.config.centerX * 0.25 -- example width scale
-    local offY = 400 -- Fixed vertical lookahead often better than % 
-    
-    local leftX = Detector.config.centerX - offX
-    local rightX = Detector.config.centerX + offX
-    local scanY = 1920 - offY -- using fixed assumes 1920h, should use screenH
+    -- Use Calibrated points if available
+    local pL = Calibration.state.pointL
+    local pR = Calibration.state.pointR
+    local targetColor = Calibration.state.pathColor
 
-    local leftColor = getPixelColor(leftX, scanY)
-    local rightColor = getPixelColor(rightX, scanY)
+    -- If not calibrated, use default (safety fallback)
+    if not Calibration.state.isCalibrated then
+        -- Default: Center +/- offset
+        local cx = 540
+        local cy = 1500
+        pL = {x = cx - 150, y = cy}
+        pR = {x = cx + 150, y = cy}
+        targetColor = 0xFFFFFF
+    end
 
-    if not isPath(leftColor) or not isPath(rightColor) then
-        Input.tap(Detector.config.centerX, Detector.config.centerY)
-        os.sleep(150) -- Humanize
+    -- Handle exclude timer (to prevent double tap on same turn)
+    if Detector.config.ignoreTimer > 0 then
+        Detector.config.ignoreTimer = Detector.config.ignoreTimer - 1
+        -- Early exit or partial check could go here
+    end
+
+    -- Check sensors
+    -- If we just turned LEFT (tapped because RIGHT sensor hit fence), 
+    -- we should momentarily ignore the RIGHT sensor or the LEFT sensor depending on mechanics.
+    -- Usually: You tap to TOGGLE direction.
+    -- If moving Right -> Right sensor hits fence -> Tap -> Now moving Left.
+    -- Danger: We might still be near the right fence for a few frames. 
+    -- So we should ignore the sensor that triggered the tap.
+
+    local checkLeft = (Detector.config.ignoreSide ~= 'left' or Detector.config.ignoreTimer <= 0)
+    local checkRight = (Detector.config.ignoreSide ~= 'right' or Detector.config.ignoreTimer <= 0)
+
+    local leftColor = -1
+    local rightColor = -1
+
+    if checkLeft then leftColor = getPixelColor(pL.x, pL.y) end
+    if checkRight then rightColor = getPixelColor(pR.x, pR.y) end
+
+    local triggerTap = false
+    local triggerSource = nil
+
+    if checkLeft and not isPath(leftColor, targetColor) then
+        triggerTap = true
+        triggerSource = 'left'
+    elseif checkRight and not isPath(rightColor, targetColor) then
+        triggerTap = true
+        triggerSource = 'right'
+    end
+
+    if triggerTap then
+        -- Action: Tap to switch direction
+        -- Tap center or anywhere safe
+        Input.tap(540, 1000) 
+        
+        -- Logic: We hit a fence on 'triggerSource' side.
+        -- We are switching direction AWAY from that fence.
+        -- We should ignore that side for a bit to avoid re-triggering while moving away.
+        Detector.config.ignoreSide = triggerSource
+        Detector.config.ignoreTimer = 10 -- frames (~160ms at 60fps)
+        
+        -- Also sleep briefly to ensure input registers
+        os.sleep(50) 
     end
 end
 
