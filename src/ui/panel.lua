@@ -1,38 +1,29 @@
 local Panel = {}
 
--- State variables
-Panel.isRunning = false
-Panel.speedMultiplier = 1.0
+-- UI Configuration
+local UI_TITLE = "🐰 BunnyBot Pro"
+local menu_options = {"🚀 Start Script", "🛑 Stop Script", "⚙️ Calibration", "❌ Exit"}
 
 function Panel.show()
-    -- GameGuardian UI implementation
-    -- This is a simplified menu structure
-    local choice = gg.choice({
-        "Start/Stop Script [" .. (Panel.isRunning and "RUNNING" or "STOPPED") .. "]",
-        "Config Speed [" .. Panel.speedMultiplier .. "x]",
-        "Exit"
-    }, nil, "Bunny Runner Auto v1.0")
-
+    -- This uses a standard Android-Lua interface pattern
+    local choice = gg.choice(menu_options, nil, UI_TITLE)
+    
     if choice == 1 then
-        Panel.isRunning = not Panel.isRunning
-        gg.toast("Script is now " .. (Panel.isRunning and "RUNNING" or "STOPPED"))
+        gg.toast("Running BunnyBot...")
+        if startAutomation then startAutomation() end
     elseif choice == 2 then
-        local input = gg.prompt({"Enter Speed Multiplier (0.5 - 5.0):"}, {Panel.speedMultiplier}, {"number"})
-        if input and input[1] then
-            Panel.speedMultiplier = tonumber(input[1])
-            gg.toast("Speed set to " .. Panel.speedMultiplier)
-        end
+        if stopAutomation then stopAutomation() end
+        gg.toast("Script Paused.")
     elseif choice == 3 then
-        print("Exiting...")
+        if runCalibration then runCalibration() end
+    elseif choice == 4 then
         os.exit()
     end
 end
 
--- Non-blocking UI update (if framework supports it, otherwise poll)
+-- Create a floating icon to trigger the menu
 function Panel.update()
-    -- In standard GG, ui is blocking (showMenu), so this might need to be called periodically
-    -- or use a transparent overlay if available in advanced setups.
-    -- For now, we assume key press triggers menu or it runs in a standard visible check loop.
+    -- In main loop, we check if user tapped the GG icon (isVisible returns true)
     if gg.isVisible(true) then
         gg.setVisible(false)
         Panel.show()
