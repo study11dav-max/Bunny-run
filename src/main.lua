@@ -31,7 +31,9 @@ function main()
         Detector.update()
 
         -- 3. Throttle
-        gg.sleep(16) 
+        -- V2 logic requires extremely fast polling (5ms recommended by user).
+        -- We will match that.
+        gg.sleep(5) 
     end
 end
 

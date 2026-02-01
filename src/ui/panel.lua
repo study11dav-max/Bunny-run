@@ -9,7 +9,7 @@ function Panel.show()
     local choice = gg.choice(menu_options, nil, UI_TITLE)
     
     if choice == 1 then
-        gg.toast("Running BunnyBot...")
+        gg.toast("Running BunnyBot V2...")
         if startAutomation then startAutomation() end
     elseif choice == 2 then
         if stopAutomation then stopAutomation() end
