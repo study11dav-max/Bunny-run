@@ -3,6 +3,7 @@
 -- Load Modules
 local Detector = require("src.core.detector")
 local Panel = require("src.ui.panel")
+local Recovery = require("src.core.recovery")
 
 -- Mock globals for local testing if needed
 if not gg then
@@ -29,6 +30,12 @@ function main()
         -- 2. Core Automation Logic
         -- The Detector handles the isRunning check internally now
         Detector.update()
+        
+        -- Check Game Over (Lazarus)
+        if Panel.isRunning and Recovery.checkGameOver() then
+             startAutomation() 
+             gg.sleep(1000)
+        end
 
         -- 3. Throttle
         -- V2 logic requires extremely fast polling (5ms recommended by user).
