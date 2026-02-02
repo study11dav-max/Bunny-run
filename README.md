@@ -55,7 +55,7 @@ buildozer android debug deploy run
 ## 📁 Final Project Structure
 
 ```text
-python_app/
+.
 ├── main.py              # Main Kivy Entry Point & App Lifecycle
 ├── buildozer.spec       # Android Compilation Config
 ├── assets/              # Template images for OpenCV matching
