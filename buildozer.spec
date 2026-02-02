@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 1.0.0
 
 # Critical Requirements
-requirements = python3, kivy, numpy, python-opencv-lite, android
+requirements = python3, kivy, numpy, opencv, android
 
 # Permissions for Zero-PC Automation
 android.permissions = SYSTEM_ALERT_WINDOW, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
