@@ -46,14 +46,18 @@ end
 function M.saveConfig(pathColor, rx, ry, settings)
     local file = io.open(configPath, "w")
     if file then
-        file:write(pathColor .. "\n")
-        file:write(rx .. "\n")
-        file:write(ry .. "\n")
+        file:write((pathColor or 0) .. "\n")
+        file:write((rx or 0) .. "\n")
+        file:write((ry or 0) .. "\n")
         -- Optional: Save advanced settings
         if settings then
             file:write((settings.detectionHeight or 65) .. "\n")
             file:write((settings.tolerance or 5000) .. "\n")
             file:write((settings.refractoryMs or 150) .. "\n")
+            file:write((settings.appIconX or 0) .. "\n")
+            file:write((settings.appIconY or 0) .. "\n")
+            file:write((settings.autoReset and 1 or 0) .. "\n")
+            file:write((settings.rootMode and 1 or 0) .. "\n")
         end
         file:close()
         return true
@@ -76,12 +80,52 @@ function M.loadConfig()
                 ry = tonumber(data[3]),
                 detectionHeight = tonumber(data[4]) or 65,
                 tolerance = tonumber(data[5]) or 5000,
-                refractoryMs = tonumber(data[6]) or 150
+                refractoryMs = tonumber(data[6]) or 150,
+                appIconX = tonumber(data[7]) or 0,
+                appIconY = tonumber(data[8]) or 0,
+                autoReset = (tonumber(data[9]) == 1),
+                rootMode = (tonumber(data[10]) == 1)
             }
             return config
         end
     end
     return nil
+end
+
+-- Full Intelligent Calibration Wizard
+function M.runFullCalibration(config)
+    gg.alert("🎯 STARTING AUTOMATED CALIBRATION\n\nPlease follow the prompts to make the bot fail-proof.")
+
+    local sw, sh = gg.getScreenSize()
+
+    -- STEP 1: App Icon Location (For No-Root Reset)
+    gg.alert("1. Go to your Home Screen.\n2. Note where the Bunny Runner icon is.\n3. Press OK and enter the coordinates.")
+    
+    local appPos = gg.prompt({
+        "Icon X-Coordinate", 
+        "Icon Y-Coordinate"
+    }, {sw/2, sh/2}, {"number", "number"})
+
+    if appPos then
+        config.appIconX = tonumber(appPos[1])
+        config.appIconY = tonumber(appPos[2])
+    end
+
+    -- STEP 2: Path Color Detection
+    gg.alert("2. Open the game to the START screen (where Bunny is on the path) and press OK.")
+    gg.sleep(2000)
+    config.path_color = gg.getPixel(sw/2, sh*0.65)
+    
+    -- DEFAULT Advanced Settings
+    config.detectionHeight = 65
+    config.tolerance = 5000
+    config.refractoryMs = 150
+    config.autoReset = true
+    
+    M.saveConfig(config.path_color, config.rx, config.ry, config)
+    gg.toast("✅ Calibration Saved! Bot is now bulletproof.")
+    
+    return config
 end
 
 return M

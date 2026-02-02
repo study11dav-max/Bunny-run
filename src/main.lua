@@ -79,12 +79,33 @@ local function checkSystem()
     return true
 end
 
--- Unified Reset Function
+-- Unified Reset Function (Ghost Tap included)
 local function performReset()
     if config.rootMode then
         reset.restartGame()
     else
         gestures.humanResetApp(config.appIconX, config.appIconY)
+    end
+    
+    -- GHOST TAP: Tap center until Path Color is detected (handles popups)
+    if config.path_color then
+        gg.toast("👻 GHOST TAP: Navigating through pop-ups...")
+        local sw, sh = gg.getScreenSize()
+        local startTime = os.time()
+        
+        while os.time() - startTime < 10 do -- Max 10s ghost tapping
+            local detectionY = sh * (config.detectionHeight / 100)
+            local currentColor = gg.getPixel(sw/2, detectionY)
+            
+            -- If we see the path, stop ghost tapping
+            if math.abs(currentColor - config.path_color) < config.tolerance then
+                gg.toast("✅ Game Loaded. Resuming Bot.")
+                break
+            end
+            
+            gg.click({x=sw/2, y=sh/2})
+            gg.sleep(2000)
+        end
     end
 end
 
