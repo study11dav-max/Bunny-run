@@ -19,7 +19,11 @@ jobs:
           command: buildozer android release
           repository_root: .
         env:
-          USER: root
+          USER: runner
+
+      - name: Fix permissions for cleanup
+        if: always()
+        run: sudo chown -R $USER:$USER .
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
