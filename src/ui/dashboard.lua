@@ -5,16 +5,19 @@ function M.showDashboard(configState)
     local step1 = configState.path_color and "✅" or "❌"
     local step2 = (configState.rx > 0) and "✅" or "❌"
     local ghost = configState.autoReset and "ON" or "OFF"
+    local mode = configState.rootMode and "ROOT" or "HUMAN"
     
     local status = string.format(
-        "--- SETUP STATUS ---\n1. Path Color: %s\n2. Restart Button: %s\n3. Ghost Reset: %s\n--------------------",
-        step1, step2, ghost
+        "--- SETUP STATUS ---\n1. Path Color: %s\n2. Mode: %s\n3. Ghost Reset: %s\n--------------------",
+        step1, mode, ghost
     )
 
     local menu = gg.choice({
         "🚀 RUN BOT",
         "🎨 Step 1: Calibrate Path",
-        "💀 Step 2: Calibrate Restart",
+        "🤖 Auto-Scan UI Elements",
+        "🔄 Switch Mode [" .. mode .. "]",
+        "🏠 Calibrate Home App Icon",
         "👻 Toggle Ghost Reset [" .. ghost .. "]",
         "📖 View Tutorial / Help",
         "⚙️ Advanced Settings",
