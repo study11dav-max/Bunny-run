@@ -46,6 +46,15 @@ local config = {
     rootMode = true
 }
 
+-- Load existing config...
+local savedConfig = wizard.loadConfig()
+if savedConfig then
+    for k, v in pairs(savedConfig) do config[k] = v end
+else
+    -- FIRST RUN: Auto-trigger Wizard
+    config = wizard.runFullCalibration(config)
+end
+
 -- Heartbeat Logic
 local lastChangeTime = os.time()
 local lastScreenHash = ""
