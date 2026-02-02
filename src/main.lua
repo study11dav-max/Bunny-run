@@ -27,19 +27,19 @@ local STATE_RUNNING = 2
 local current_state = STATE_WAITING
 local path_color = nil
 
--- Default App Icon Location (Top-Left Relaunch Strategy)
-local APP_X, APP_Y = 50, 50
+-- Default App Icon Location (Center-Top Relaunch Strategy)
+local ICON_X, ICON_Y = 540, 450
 
 -- Configuration State
 local config = {
     path_color = nil,
     rx = 0, ry = 0,
-    appIconX = APP_X, 
-    appIconY = APP_Y,
+    appIconX = ICON_X, 
+    appIconY = ICON_Y,
     ready = false,
     detectionHeight = 65,
     tolerance = 5000,
-    refractoryMs = 150,
+    refractoryMs = 200,
     autoReset = true,
     rootMode = true
 }
@@ -109,21 +109,20 @@ local function performReset()
         gestures.humanResetApp(config.appIconX, config.appIconY)
     end
     
-    -- Clear PATH_COLOR to force dynamic re-learning next level
+    -- Clear dynamic data
     path_color = nil
     config.path_color = nil
 end
 
--- Bot Logic (The Zero-Load automated flow)
+-- Bot Logic (The White Fence automated flow)
 local function runBotLogic()
     if not checkSystem() then return end
     
     local sw, sh = gg.getScreenSize()
     current_state = STATE_WAITING
-    gg.toast("🐰 BunnyBot: Zero-Load Automator ON")
+    gg.toast("🐰 BunnyBot: White Fence Sensor ON")
     gg.setVisible(false)
     
-    local direction = "RIGHT"
     lastChangeTime = os.time()
     
     while true do
@@ -138,58 +137,40 @@ local function runBotLogic()
             -- 1. WAIT FOR START (Look for Blue PLAY button)
             local btnPixel = gg.getPixel(sw / 2, sh * 0.82)
             if isColorClose(btnPixel, 0x2196F3, 30) then
-                gg.toast("🎮 Ready. Press PLAY to start.")
+                gg.toast("🎮 Start Screen Detected. Press PLAY to begin!")
+                path_color = nil -- Reset for new session
                 gg.sleep(1000)
             else
-                -- 2. DYNAMIC LEARNING (Triggered after Play is pressed)
+                -- 2. DYNAMIC START
                 gg.sleep(1000) -- Wait for level to load
-                current_state = STATE_LEARNING
+                current_state = STATE_RUNNING
+                gg.toast("✨ Game Started!")
             end
-
-        elseif current_state == STATE_LEARNING then
-            path_color = gg.getPixel(sw / 2, sh * 0.7)
-            config.path_color = path_color
-            current_state = STATE_RUNNING
-            gg.toast("✨ Path Learned Automatically! Don't touch.")
 
         elseif current_state == STATE_RUNNING then
             -- 1. Heartbeat Check
-            if checkStuck() then
-                direction = "RIGHT"
-                current_state = STATE_WAITING
+            checkStuck()
+
+            -- 2. ZIGZAG LOGIC (White Fence Strategy)
+            -- Sensor A (Left): If we see the white fence, turn
+            local leftSensor = gg.getPixel(sw * 0.42, sh * 0.65)
+            -- Sensor B (Right): If we see the white fence, turn
+            local rightSensor = gg.getPixel(sw * 0.58, sh * 0.65)
+            
+            if isColorClose(leftSensor, 0xFFFFFF, 20) or isColorClose(rightSensor, 0xFFFFFF, 20) then 
+                click({x=sw/2, y=sh/2})
+                gg.sleep(config.refractoryMs)
             end
 
-            -- 2. State Detection & ZigZag Logic
-            local state = vision.checkState()
-            
-            if state == "START_SCREEN" then
-                -- Backup scanner if PLAY pixel check missed
-                gg.toast("🔍 SCANNING: Play Button Detected")
-                gg.vibrate(200)
-                click({x=sw/2, y=sh*0.82}) 
-                gg.sleep(2000)
-                
-            elseif state == "WIN_SCREEN" or state == "GAME_OVER" or state == "LOSE_SCREEN" then
-                -- AD-SKIP TRIGGER (Detection of Win/Loss)
-                gg.toast("🏁 Level Ended. Resetting App...")
+            -- 3. AD-SKIP TRIGGER
+            local ui_pixel = gg.getPixel(sw / 2, sh * 0.75)
+            if isColorClose(ui_pixel, 0xFFAA00, 30) or isColorClose(ui_pixel, 0x8BC34A, 30) then
+                gg.toast("🏁 Level Ended. Skipping Ads...")
                 if config.autoReset then 
                     performReset() 
-                    direction = "RIGHT"
                     current_state = STATE_WAITING
                 else 
                     break 
-                end
-                
-            elseif state == "IN_GAME" then
-                -- 3. IN-GAME LOGIC (ZigZag)
-                local detectionY = sh * (config.detectionHeight / 100)
-                local checkX = (direction == "RIGHT") and (sw/2 + 150) or (sw/2 - 150)
-                local currentColor = gg.getPixel(checkX, detectionY)
-
-                if not isColorClose(currentColor, config.path_color, 40) then
-                    click({x=sw/2, y=sh/2})
-                    direction = (direction == "RIGHT") and "LEFT" or "RIGHT"
-                    gg.sleep(config.refractoryMs)
                 end
             end
         end
@@ -215,8 +196,8 @@ while true do
             wizard.saveConfig(config.path_color, config.rx, config.ry, config)
             
         elseif choice == 5 then
-            gg.alert("🏠 NO-ROOT RELAUNCH:\nEnsure the Bunny Runner icon is in the TOP-LEFT corner of your Home Screen for auto-mode.\n\nOr enter manual coordinates below.")
-            local result = gg.prompt({"Icon X", "Icon Y"}, {config.appIconX or 50, config.appIconY or 50}, {"number", "number"})
+            gg.alert("🏠 NO-ROOT RELAUNCH:\nRecommended: Place the Bunny icon in the CENTER-TOP (540, 450) of your Home screen.\n\nManual coordinates:")
+            local result = gg.prompt({"Icon X", "Icon Y"}, {config.appIconX or 540, config.appIconY or 450}, {"number", "number"})
             if result then
                 config.appIconX, config.appIconY = tonumber(result[1]), tonumber(result[2])
                 gg.toast("✅ Icon Position Saved!")
