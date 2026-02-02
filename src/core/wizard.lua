@@ -1,15 +1,36 @@
 local M = {}
 local configPath = gg.EXT_STORAGE .. "/bunny_runner.cfg"
 
--- Step 1: Capture Path Color
-function M.capturePathColor()
-    -- Sample the color at 70% height where the path usually is
+-- Passive Learning: Samples the path many times and picks the most frequent color
+function M.passivePathGatherer()
     local sw, sh = gg.getscreenSize()
-    local targetY = math.floor(sh * 0.7)
-    local pathColor = gg.getPixel(sw / 2, targetY)
+    local colorVotes = {}
+    local samplesNeeded = 30
+    local collected = 0
+
+    gg.toast("🕒 Learning Path... Just play normally!")
     
-    gg.toast("✅ Path Color Captured: " .. string.format("%X", pathColor))
-    return pathColor
+    while collected < samplesNeeded do
+        local color = gg.getPixel(sw / 2, sh * 0.7)
+        -- Ignore pure black or pure white (loading screens)
+        if color ~= 0x000000 and color ~= 0xFFFFFF then
+            colorVotes[color] = (colorVotes[color] or 0) + 1
+            collected = collected + 1
+        end
+        gg.sleep(150)
+    end
+
+    -- Find the most frequent color (Mode) to ignore shadows
+    local winner, max = nil, 0
+    for color, count in pairs(colorVotes) do
+        if count > max then
+            max = count
+            winner = color
+        end
+    end
+
+    gg.toast("✅ Calibration Successful!")
+    return winner
 end
 
 -- Step 2: Capture Restart Button Position

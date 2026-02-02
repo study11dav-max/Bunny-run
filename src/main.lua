@@ -30,13 +30,16 @@ if not gg then
     }
 end
 
--- Native Click Helper (Since gg.click doesn't exist)
-local function click(p)
-    gg.gesture({{{x=p.x, y=p.y, t=0}, {x=p.x, y=p.y, t=50}}})
-end
-
 -- UI Anchor Cache
 local UI_LOCS = {}
+
+-- STATE CONSTANTS
+local STATE_WAITING = 0
+local STATE_LEARNING = 1
+local STATE_RUNNING = 2
+
+local current_state = STATE_WAITING
+local path_color = nil
 
 -- Configuration State
 local config = {
@@ -55,9 +58,18 @@ local config = {
 local savedConfig = wizard.loadConfig()
 if savedConfig then
     for k, v in pairs(savedConfig) do config[k] = v end
-else
-    -- FIRST RUN: Auto-trigger Wizard
-    config = wizard.runFullCalibration(config)
+end
+
+-- Helper for Fuzzy Matching
+local function isColorClose(c1, c2, tolerance)
+    local r1, g1, b1 = (c1 >> 16) & 0xFF, (c1 >> 8) & 0xFF, c1 & 0xFF
+    local r2, g2, b2 = (c2 >> 16) & 0xFF, (c2 >> 8) & 0xFF, c2 & 0xFF
+    return (math.abs(r1-r2) + math.abs(g1-g2) + math.abs(b1-b2)) < (tolerance or 30)
+end
+
+-- Native Click Helper
+local function click(p)
+    gg.gesture({{{x=p.x, y=p.y, t=0}, {x=p.x, y=p.y, t=50}}})
 end
 
 -- Heartbeat Logic
@@ -99,7 +111,7 @@ local function checkSystem()
     return true
 end
 
--- Unified Reset Function (Ghost Tap included)
+-- Unified Reset Function
 local function performReset()
     if config.rootMode then
         reset.restartGame()
@@ -108,17 +120,17 @@ local function performReset()
     end
     
     -- GHOST TAP: Tap center until Path Color is detected (handles popups)
-    if config.path_color then
+    if config.path_color or path_color then
         gg.toast("👻 GHOST TAP: Navigating through pop-ups...")
         local sw, sh = gg.getscreenSize()
         local startTime = os.time()
+        local targetColor = config.path_color or path_color
         
-        while os.time() - startTime < 10 do -- Max 10s ghost tapping
+        while os.time() - startTime < 10 do
             local detectionY = sh * (config.detectionHeight / 100)
             local currentColor = gg.getPixel(sw/2, detectionY)
             
-            -- If we see the path, stop ghost tapping
-            if math.abs(currentColor - config.path_color) < config.tolerance then
+            if isColorClose(currentColor, targetColor, 60) then
                 gg.toast("✅ Game Loaded. Resuming Bot.")
                 break
             end
@@ -129,56 +141,70 @@ local function performReset()
     end
 end
 
--- Bot Logic
+-- Bot Logic (The Robust Loop)
 local function runBotLogic()
     if not checkSystem() then return end
     
-    gg.toast("🐰 BunnyBot: Bulletproof Mode ON")
+    local sw, sh = gg.getscreenSize()
+    current_state = STATE_WAITING
+    gg.toast("🐰 BunnyBot: Robust Learning Mode ON")
     gg.setVisible(false)
     
-    local sw, sh = gg.getscreenSize()
     local direction = "RIGHT"
     lastChangeTime = os.time()
     
     if not next(UI_LOCS) then UI_LOCS = vision_auto.autoLocate() end
     
     while true do
-        -- 1. Heartbeat Check (STUCK State)
-        if checkStuck() then
-            direction = "RIGHT"
-        end
+        if current_state == STATE_WAITING then
+            -- Look for the blue 'PLAY' button (Welcome Page)
+            local welcomePixel = gg.getPixel(sw / 2, sh * 0.85)
+            if isColorClose(welcomePixel, 0x2196F3, 30) then
+                gg.toast("👋 Waiting for you to press PLAY...")
+                gg.sleep(1000)
+            else
+                -- User started the game
+                current_state = STATE_LEARNING
+            end
 
-        -- 2. State Detection
-        local state = vision.checkState()
-        
-        if state == "START_SCREEN" then
-            -- SCANNING State
-            gg.toast("🔍 SCANNING: Play Button Detected")
-            gg.vibrate(200) -- Haptic feedback
+        elseif current_state == STATE_LEARNING then
+            path_color = wizard.passivePathGatherer()
+            config.path_color = path_color
+            current_state = STATE_RUNNING
+            gg.toast("🚀 Bot Logic ACTIVATED")
+
+        elseif current_state == STATE_RUNNING then
+            -- 1. Heartbeat Check
+            if checkStuck() then
+                direction = "RIGHT"
+                current_state = STATE_WAITING
+            end
+
+            -- 2. State Detection & ZigZag
+            local state = vision.checkState()
             
-            local x = UI_LOCS.START_BTN and UI_LOCS.START_BTN.x or sw/2
-            local y = UI_LOCS.START_BTN and UI_LOCS.START_BTN.y or sh*0.8
-            click({x=x, y=y})
-            gg.sleep(2000)
-            
-        elseif state == "WIN_SCREEN" then
-            -- VICTORY State
-            gg.toast("🏆 VICTORY: Resetting for next level...")
-            if config.autoReset then performReset() direction = "RIGHT" else break end
-            
-        elseif state == "GAME_OVER" or state == "LOSE_SCREEN" then
-            -- DEFEAT State
-            gg.toast("💩 DEFEAT: Resetting to skip ads...")
-            if config.autoReset then performReset() direction = "RIGHT" else break end
-            
-        elseif state == "IN_GAME" then
-            -- PLAYING State
-            if config.path_color then
+            if state == "START_SCREEN" then
+                gg.toast("🔍 SCANNING: Play Button Detected")
+                gg.vibrate(200)
+                click({x=sw/2, y=sh*0.8}) -- Backup click
+                gg.sleep(2000)
+                
+            elseif state == "WIN_SCREEN" or state == "GAME_OVER" or state == "LOSE_SCREEN" then
+                gg.toast("🏆/💩 Resetting to skip ads...")
+                if config.autoReset then 
+                    performReset() 
+                    direction = "RIGHT"
+                    current_state = STATE_WAITING
+                else 
+                    break 
+                end
+                
+            elseif state == "IN_GAME" then
                 local detectionY = sh * (config.detectionHeight / 100)
                 local checkX = (direction == "RIGHT") and (sw/2 + 150) or (sw/2 - 150)
                 local currentColor = gg.getPixel(checkX, detectionY)
 
-                if math.abs(currentColor - config.path_color) > config.tolerance then
+                if not isColorClose(currentColor, config.path_color, config.tolerance / 100) then
                     click({x=sw/2, y=sh/2})
                     direction = (direction == "RIGHT") and "LEFT" or "RIGHT"
                     gg.sleep(config.refractoryMs)
@@ -204,7 +230,7 @@ while true do
             runBotLogic()
             
         elseif choice == 2 then
-            config.path_color = wizard.capturePathColor()
+            config.path_color = wizard.passivePathGatherer()
             wizard.saveConfig(config.path_color, config.rx, config.ry, config)
             
         elseif choice == 3 then

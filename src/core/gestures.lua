@@ -11,28 +11,29 @@ function M.humanResetApp(appIconX, appIconY)
     
     gg.toast("🖐️ Performing Human Reset...")
     
-    -- 1. Open Recents (Swipe up and HOLD)
+    -- 1. Open Recent Apps (Slow swipe up and hold)
+    -- Using the user's suggested coordinate-based format for clarity if needed, 
+    -- but keeping the internal list format which is more standard for gg.gesture
     gg.gesture({
         {
-            {x = sw / 2, y = sh - 10, t = 0},
-            {x = sw / 2, y = sh / 2, t = 600}
+            {x = sw / 2, y = sh - 20, t = 0},
+            {x = sw / 2, y = sh / 2, t = 800}
         }
     })
-    gg.sleep(1000)
+    gg.sleep(1200)
     
-    -- 2. Swipe App Away (Swipe card OFF the screen)
-    -- Using a side swipe as per the user's refined logic
+    -- 2. Dismiss the Game (Swipe card to the side)
     gg.gesture({
         {
             {x = sw / 2, y = sh / 2, t = 0},
-            {x = sw, y = sh / 2, t = 300}
+            {x = sw - 50, y = sh / 2, t = 400}
         }
     })
     gg.sleep(1000)
     
     -- 3. Tap Home Button (Assumes bottom center)
     tap(sw / 2, sh - 50)
-    gg.sleep(500)
+    gg.sleep(1000)
     
     -- 4. Tap the App Icon on Home Screen (Relaunch)
     if appIconX and appIconY and appIconX > 0 then
@@ -42,7 +43,7 @@ function M.humanResetApp(appIconX, appIconY)
         gg.alert("⚠️ Home Screen Icon not calibrated!")
     end
     
-    gg.sleep(5000) -- Clean boot time
+    gg.sleep(6000) -- Clean boot time
 end
 
 return M
