@@ -10,7 +10,7 @@ M.PATTERNS = {
 
 -- Scans the screen to find button locations automatically
 function M.autoLocate()
-    local sw, sh = gg.getScreenSize()
+    local sw, sh = gg.getscreenSize()
     gg.toast("🔍 Auto-Scanning UI Elements...")
 
     local centerX = sw / 2

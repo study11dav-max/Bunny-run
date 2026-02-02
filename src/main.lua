@@ -16,11 +16,10 @@ local permissions = require("core.permissions")
 -- Mock GG for testing
 if not gg then
     _G.gg = {
-        getScreenSize = function() return 1080, 2400 end,
+        getscreenSize = function() return 1080, 2400 end,
         getPixel = function() return 0xFFFFFF end,
         toast = print,
         sleep = function() end,
-        click = function(t) print("Click", t.x, t.y) end,
         gesture = function() print("Gesture performed"); return true end,
         isKeyPressed = function() return false end,
         setVisible = function() end,
@@ -29,6 +28,11 @@ if not gg then
         alert = print,
         EXT_STORAGE = "."
     }
+end
+
+-- Native Click Helper (Since gg.click doesn't exist)
+local function click(p)
+    gg.gesture({{{x=p.x, y=p.y, t=0}, {x=p.x, y=p.y, t=50}}})
 end
 
 -- UI Anchor Cache
@@ -61,7 +65,7 @@ local lastChangeTime = os.time()
 local lastScreenHash = ""
 
 local function checkStuck()
-    local sw, sh = gg.getScreenSize()
+    local sw, sh = gg.getscreenSize()
     local currentHash = gg.getPixel(sw/2, sh/2)
     
     if currentHash == lastScreenHash then
@@ -80,7 +84,7 @@ end
 
 -- Startup Diagnostics
 local function checkSystem()
-    local sw, sh = gg.getScreenSize()
+    local sw, sh = gg.getscreenSize()
     if sw > sh then
         gg.alert("⚠️ LANDSCAPE DETECTED\nThis script is optimized for PORTRAIT mode. Please rotate your device.")
     end
@@ -106,7 +110,7 @@ local function performReset()
     -- GHOST TAP: Tap center until Path Color is detected (handles popups)
     if config.path_color then
         gg.toast("👻 GHOST TAP: Navigating through pop-ups...")
-        local sw, sh = gg.getScreenSize()
+        local sw, sh = gg.getscreenSize()
         local startTime = os.time()
         
         while os.time() - startTime < 10 do -- Max 10s ghost tapping
@@ -119,7 +123,7 @@ local function performReset()
                 break
             end
             
-            gg.click({x=sw/2, y=sh/2})
+            click({x=sw/2, y=sh/2})
             gg.sleep(2000)
         end
     end
@@ -132,7 +136,7 @@ local function runBotLogic()
     gg.toast("🐰 BunnyBot: Bulletproof Mode ON")
     gg.setVisible(false)
     
-    local sw, sh = gg.getScreenSize()
+    local sw, sh = gg.getscreenSize()
     local direction = "RIGHT"
     lastChangeTime = os.time()
     
@@ -154,7 +158,7 @@ local function runBotLogic()
             
             local x = UI_LOCS.START_BTN and UI_LOCS.START_BTN.x or sw/2
             local y = UI_LOCS.START_BTN and UI_LOCS.START_BTN.y or sh*0.8
-            gg.click({x=x, y=y})
+            click({x=x, y=y})
             gg.sleep(2000)
             
         elseif state == "WIN_SCREEN" then
@@ -175,7 +179,7 @@ local function runBotLogic()
                 local currentColor = gg.getPixel(checkX, detectionY)
 
                 if math.abs(currentColor - config.path_color) > config.tolerance then
-                    gg.click({x=sw/2, y=sh/2})
+                    click({x=sw/2, y=sh/2})
                     direction = (direction == "RIGHT") and "LEFT" or "RIGHT"
                     gg.sleep(config.refractoryMs)
                 end

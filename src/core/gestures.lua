@@ -1,8 +1,13 @@
 local M = {}
 
+-- Native Tap Helper
+local function tap(x, y)
+    gg.gesture({{{x = x, y = y, t = 0}, {x = x, y = y, t = 50}}})
+end
+
 -- Performs a "Human-like" reset of the app to bypass ads without Root
 function M.humanResetApp(appIconX, appIconY)
-    local sw, sh = gg.getScreenSize()
+    local sw, sh = gg.getscreenSize()
     
     gg.toast("🖐️ Performing Human Reset...")
     
@@ -25,13 +30,13 @@ function M.humanResetApp(appIconX, appIconY)
     })
     gg.sleep(1000)
     
-    -- 3. Click Home Button (Assumes bottom center)
-    gg.click({x = sw / 2, y = sh - 50})
+    -- 3. Tap Home Button (Assumes bottom center)
+    tap(sw / 2, sh - 50)
     gg.sleep(500)
     
-    -- 4. Click the App Icon on Home Screen (Relaunch)
+    -- 4. Tap the App Icon on Home Screen (Relaunch)
     if appIconX and appIconY and appIconX > 0 then
-        gg.click({x = appIconX, y = appIconY})
+        tap(appIconX, appIconY)
         gg.toast("🚀 Relaunching Bunny Runner...")
     else
         gg.alert("⚠️ Home Screen Icon not calibrated!")

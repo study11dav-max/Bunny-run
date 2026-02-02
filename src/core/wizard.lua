@@ -4,7 +4,7 @@ local configPath = gg.EXT_STORAGE .. "/bunny_runner.cfg"
 -- Step 1: Capture Path Color
 function M.capturePathColor()
     -- Sample the color at 70% height where the path usually is
-    local sw, sh = gg.getScreenSize()
+    local sw, sh = gg.getscreenSize()
     local targetY = math.floor(sh * 0.7)
     local pathColor = gg.getPixel(sw / 2, targetY)
     
@@ -15,7 +15,7 @@ end
 -- Step 2: Capture Restart Button Position
 function M.captureRestartPos()
     -- Use the center for the Restart/Continue button based on game UI
-    local sw, sh = gg.getScreenSize()
+    local sw, sh = gg.getscreenSize()
     
     -- Based on UI screenshots, buttons are centered horizontally
     local rx = sw / 2
@@ -79,7 +79,7 @@ end
 function M.runFullCalibration(config)
     gg.alert("🎯 STARTING AUTOMATED CALIBRATION\n\nPlease follow the prompts to make the bot fail-proof.")
 
-    local sw, sh = gg.getScreenSize()
+    local sw, sh = gg.getscreenSize()
 
     -- STEP 1: App Icon Location (For No-Root Reset)
     gg.alert("1. Go to your Home Screen.\n2. Note where the Bunny Runner icon is.\n3. Press OK and enter the coordinates.")
