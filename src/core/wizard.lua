@@ -3,43 +3,26 @@ local configPath = gg.EXT_STORAGE .. "/bunny_runner.cfg"
 
 -- Step 1: Capture Path Color
 function M.capturePathColor()
-    gg.alert("🎨 STEP 1: Pause the game while Bunny is on the path.\n\nPress OK to capture the path color.")
+    -- Sample the color at 70% height where the path usually is
     local sw, sh = gg.getScreenSize()
+    local targetY = math.floor(sh * 0.7)
+    local pathColor = gg.getPixel(sw / 2, targetY)
     
-    -- Use the "Sweet Spot" - 60-70% from top
-    local pathColor = gg.getPixel(sw / 2, sh * 0.65)
-    gg.toast("✅ Path Color Captured: " .. string.format("0x%06X", pathColor))
-    
+    gg.toast("✅ Path Color Captured: " .. string.format("%X", pathColor))
     return pathColor
 end
 
 -- Step 2: Capture Restart Button Position
 function M.captureRestartPos()
-    gg.alert("💀 STEP 2: Let the Bunny die.\n\nWhen the RESTART button appears, press OK.")
-    gg.sleep(500)
-    
+    -- Use the center for the Restart/Continue button based on game UI
     local sw, sh = gg.getScreenSize()
     
-    -- Prompt for coordinates (GG doesn't have reliable touch tracking)
-    local input = gg.prompt({
-        "Enter X of Restart Button", 
-        "Enter Y of Restart Button"
-    }, {
-        sw/2, 
-        sh*0.75
-    }, {
-        "number", 
-        "number"
-    })
+    -- Based on UI screenshots, buttons are centered horizontally
+    local rx = sw / 2
+    local ry = math.floor(sh * 0.75) -- Adjusted for the 'Try Again'/'Continue' area
     
-    if input and input[1] then
-        local rx = tonumber(input[1])
-        local ry = tonumber(input[2])
-        gg.toast("✅ Restart Position Saved: " .. rx .. ", " .. ry)
-        return rx, ry
-    end
-    
-    return 0, 0
+    gg.toast("✅ Button Coordinates set to center-bottom.")
+    return rx, ry
 end
 
 -- Save configuration
