@@ -1,9 +1,10 @@
--- Add the current directory to the search path for relative requires
+-- Add the script's current folder to Lua's search path
 local scriptPath = gg.getFile():match("(.*/)")
 if scriptPath then
     package.path = package.path .. ";" .. scriptPath .. "?.lua;" .. scriptPath .. "?/init.lua"
 end
 
+-- Now you can use simple relative names
 local wizard = require("core.wizard")
 local dashboard = require("ui.dashboard")
 local vision = require("core.vision")
