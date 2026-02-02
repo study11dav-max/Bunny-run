@@ -18,14 +18,14 @@ A professional, standalone Android automation app for **Bunny Runner 3D**, built
 
 The app is built using a modular Python architecture designed for performance and reliability on Android:
 
-### Core Modules (`python_app/core/`)
+### Core Modules (`core/`)
 - **`vision.py`**: The "Eyes". Implements Template Matching and Canny edge analysis.
 - **`controller.py`**: The "Hands". Handles shell-based gestures and ad-dodge resets.
 - **`wizard.py`**: The "Brain". Handles configuration persistence (JSON) and calibration.
 - **`vision_auto.py`**: The "Scanner". Automatically identifies UI button positions.
 - **`permissions.py`**: The "Guard". Manages Accessibility and Overlay setting links.
 
-### UI Layer (`python_app/ui/`)
+### UI Layer (`ui/`)
 - **`dashboard.py`**: Professional Kivy-based menu with real-time status and advanced settings.
 
 ---
@@ -40,13 +40,11 @@ The app is built using a modular Python architecture designed for performance an
 
 ### 2. Run Locally (Testing)
 1. Clone the repository.
-2. Navigate to `python_app/`.
-3. Run `python main.py`.
+2. Run `python main.py`.
 
 ### 3. Build the APK
 Use **Buildozer** to compile for Android:
 ```bash
-cd python_app
 buildozer android debug deploy run
 ```
 
