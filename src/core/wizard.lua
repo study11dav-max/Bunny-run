@@ -1,3 +1,9 @@
+-- TYPO VACCINE: Ensures the script works on all GG versions
+if gg then
+    if not gg.getscreenSize then gg.getscreenSize = gg.getScreenSize end
+    if not gg.getpixel then gg.getpixel = gg.getPixel end
+end
+
 local M = {}
 local configPath = gg.EXT_STORAGE .. "/bunny_runner.cfg"
 

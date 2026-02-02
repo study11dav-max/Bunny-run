@@ -1,3 +1,9 @@
+-- TYPO VACCINE: Ensures the script works on all GG versions
+if gg then
+    if not gg.getscreenSize then gg.getscreenSize = gg.getScreenSize end
+    if not gg.getpixel then gg.getpixel = gg.getPixel end
+end
+
 local M = {}
 
 -- Native Tap Helper
@@ -12,8 +18,6 @@ function M.humanResetApp(appIconX, appIconY)
     gg.toast("🖐️ Performing Human Reset...")
     
     -- 1. Open Recent Apps (Slow swipe up and hold)
-    -- Using the user's suggested coordinate-based format for clarity if needed, 
-    -- but keeping the internal list format which is more standard for gg.gesture
     gg.gesture({
         {
             {x = sw / 2, y = sh - 20, t = 0},
@@ -36,14 +40,14 @@ function M.humanResetApp(appIconX, appIconY)
     gg.sleep(1000)
     
     -- 4. Tap the App Icon on Home Screen (Relaunch)
-    if appIconX and appIconY and appIconX > 0 then
-        tap(appIconX, appIconY)
-        gg.toast("🚀 Relaunching Bunny Runner...")
-    else
-        gg.alert("⚠️ Home Screen Icon not calibrated!")
-    end
+    -- Defaulting to Top-Left if not provided
+    local targetX = (appIconX and appIconX > 0) and appIconX or 50
+    local targetY = (appIconY and appIconY > 0) and appIconY or 50
     
-    gg.sleep(6000) -- Clean boot time
+    tap(targetX, targetY)
+    gg.toast("🚀 Relaunching Bunny Runner...")
+    
+    gg.sleep(6000) -- Allow time for game splash screen
 end
 
 return M
