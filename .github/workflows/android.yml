@@ -18,6 +18,8 @@ jobs:
         with:
           command: buildozer android release
           repository_root: .
+        env:
+          USER: root
 
       - name: Fix permissions for cleanup
         if: always()
