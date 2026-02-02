@@ -1,10 +1,16 @@
-local wizard = require("src.core.wizard")
-local dashboard = require("src.ui.dashboard")
-local vision = require("src.core.vision")
-local vision_auto = require("src.core.vision_auto")
-local reset = require("src.core.reset")
-local gestures = require("src.core.gestures")
-local permissions = require("src.core.permissions")
+-- Add the current directory to the search path for relative requires
+local scriptPath = gg.getFile():match("(.*/)")
+if scriptPath then
+    package.path = package.path .. ";" .. scriptPath .. "?.lua;" .. scriptPath .. "?/init.lua"
+end
+
+local wizard = require("core.wizard")
+local dashboard = require("ui.dashboard")
+local vision = require("core.vision")
+local vision_auto = require("core.vision_auto")
+local reset = require("core.reset")
+local gestures = require("core.gestures")
+local permissions = require("core.permissions")
 
 -- Mock GG for testing
 if not gg then
