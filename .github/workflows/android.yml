@@ -2,8 +2,10 @@ name: Build and Release APK
 
 on:
   push:
-    tags:
-      - 'v*' # Triggers on tags like v1.0.1
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
@@ -17,7 +19,14 @@ jobs:
           command: buildozer android release
           repository_root: .
 
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: BunnyBot_APK
+          path: bin/*.apk
+
       - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -26,20 +35,20 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            Updates in this version:
-            - Professional Standalone APK Foundation
-            - Multi-Scale Template Matching for all devices
-            - Robust Ad-Dodge Human Gestures (Shell-level)
+            BunnyBot Pro Official Release
+            - Professional Standalone APK
+            - Multi-Scale OpenCV Vision
+            - Kernel-level Ad-Dodge
           draft: false
           prerelease: false
 
       - name: Upload Release Asset
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # Path to the build artifact (adjust if buildozer names it differently)
-          asset_path: ./bin/bunnybotpro-1.0.0-release.apk
+          asset_path: bin/bunnybot-1.0.0-release-unsigned.apk
           asset_name: BunnyBot_v${{ github.ref_name }}.apk
           asset_content_type: application/vnd.android.package-archive
