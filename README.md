@@ -1,91 +1,78 @@
-# 🐰 Bunny Runner: Bulletproof Infinity Loop (Gold Release)
+# 🐰 Bunny Bot: Standalone Python APK (Zero-PC Release)
 
-A professional, "zero-stress" automation system for **Bunny Runner 3D**, built with Lua for GameGuardian. This bot supports both **Root (Shell)** and **No-Root (Human Reset)** devices, featuring a "self-healing" state machine and intelligent pop-up navigation.
-
----
-
-## ✨ Features (The Bulletproof Suite)
-
-- **🤖 5-State Logic Engine**: Intelligently switches between `SCANNING`, `PLAYING`, `VICTORY`, `DEFEAT`, and `STUCK` states.
-- **💓 12-Second Heartbeat**: Automatically detects game freezes or slow-loading ads and performing an **Emergency Reset**.
-- **🧙 Intelligent Calibration Wizard**: Two-step automated setup that "learns" your App Icon position and Path DNA.
-- **👻 The "Ghost Tap"**: Automatically navigates through daily rewards, news, and level-up pop-ups after app relaunch.
-- **🖐️ Human Emulation (No-Root)**: Mimics human gestures (Swipe Recents -> Clear Card -> Relaunch) to bypass ads without root access.
-- **🔍 Fuzzy Vision**: RGB-distance color matching that works under varying brightness and **Night Mode / Blue Light Filters**.
+A professional, standalone Android automation app for **Bunny Runner 3D**, built with Python, Kivy, and OpenCV. This version replaces the legacy Lua codebase, eliminating the need for GameGuardian and offering a superior, one-click experience.
 
 ---
 
-## 🛠️ Hybrid Architecture
+## ✨ Features (The Python Suite)
 
-### Root Mode (Ghost Reset)
-Uses raw Android shell commands (`am force-stop`) for high-speed process kills and instant ad-bypassing.
-
-### No-Root Mode (Human Reset)
-Uses the Accessibility API to emulate human gestures, providing a 100% functional ad-avoidance strategy for standard Android devices.
-
----
-
-## 🚀 Quick Start
-
-### 1. Prerequisites
-- **GameGuardian** installed.
-- **Portrait Orientation** (Locked).
-- **Navigation Bar**: 3-button layout recommended for No-Root.
-- **Permissions**: Accessibility (for No-Root gestures) or Root access.
-
-### 2. Installation
-1. Clone this repository or copy the `src/` folder to your device storage (e.g., `/sdcard/BunnyRunner/`).
-
-### 3. First Run & Calibration
-1. Launch **Bunny Runner 3D**.
-2. Open **GameGuardian** and attach it to the game.
-3. Execute `src/main.lua`.
-4. **Follow the Calibration Wizard**:
-   - **Step 1**: Mark your App Icon on the Home Screen.
-   - **Step 2**: Capture the Path Color DNA on the game's start screen.
-5. Click **🚀 RUN BOT**.
+- **🖼️ OpenCV Vision Engine**: Uses **Template Matching** (90% confidence) for reliable state detection (Starting, Winning, Ending).
+- **🏳️‍🌈 White Fence Sensors**: High-stability path detection using **Canny Edge Detection** instead of fragile pixel-color matching.
+- **📱 Standalone Controller**: A hardware-level interface for Android that performs taps and "Human-Like" ad-dodging swipes directly via shell commands.
+- **🧙 Intelligent Calibration**: Built-in Python wizard for passive path DNA sampling and automated UI scanning.
+- **🛑 Safe-Exit Kill Switch**: One-tap shutdown and emergency stop (Volume Down support).
 
 ---
 
-## ⚙️ Pro-Tips for Reliability
+## 🏗️ Architecture
 
-- **Do Not Disturb**: Turn this ON! Notifications can block pixels and cause the bot to miss a turn.
-- **Zero Filters**: Turn off "Blue Light Filter" or "Night Mode" for 100% accurate color detection.
-- **No Battery Saver**: Android often caps the CPU in power-saving mode, causing the bot to lag during turns.
-- **Home Screen**: Keep the Bunny Runner icon on your main home page for reliable relaunching.
+The app is built using a modular Python architecture designed for performance and reliability on Android:
+
+### Core Modules (`python_app/core/`)
+- **`vision.py`**: The "Eyes". Implements Template Matching and Canny edge analysis.
+- **`controller.py`**: The "Hands". Handles shell-based gestures and ad-dodge resets.
+- **`wizard.py`**: The "Brain". Handles configuration persistence (JSON) and calibration.
+- **`vision_auto.py`**: The "Scanner". Automatically identifies UI button positions.
+- **`permissions.py`**: The "Guard". Manages Accessibility and Overlay setting links.
+
+### UI Layer (`python_app/ui/`)
+- **`dashboard.py`**: Professional Kivy-based menu with real-time status and advanced settings.
 
 ---
 
-## 📁 Project Structure
+## 🚀 Quick Start (For Developers)
 
-```text
-src/
-├── main.lua                # Bulletproof Entry Point & State Machine
-├── core/
-│   ├── wizard.lua          # Intelligent Calibration Wizard
-│   ├── vision.lua          # Fuzzy Vision & State Detection
-│   ├── vision_auto.lua     # Automated UI Scanning (Button DNA)
-│   ├── gestures.lua        # Human-like Reset Emulation (No-Root)
-│   ├── reset.lua           # High-speed Shell Reset (Root)
-│   └── permissions.lua     # Accessibility Guard & Setup Guide
-└── ui/
-    └── dashboard.lua       # Status Display & Advanced Settings
+### 1. Requirements
+- **Python 3.10+**
+- **Kivy**
+- **OpenCV (cv2)**
+- **Numpy**
+
+### 2. Run Locally (Testing)
+1. Clone the repository.
+2. Navigate to `python_app/`.
+3. Run `python main.py`.
+
+### 3. Build the APK
+Use **Buildozer** to compile for Android:
+```bash
+cd python_app
+buildozer android debug deploy run
 ```
 
 ---
 
-## 📺 Dashboard Controls
+## 📁 Final Project Structure
 
-- **🚀 RUN BOT**: Start the state machine.
-- **🤖 Auto-Scan**: Automatically locate the Play/Next buttons.
-- **🔄 Switch Mode**: Toggle between `ROOT` and `HUMAN` (No-Root).
-- **🏠 Calibrate Icon**: Set the relaunch target for Human Resets.
-- **Emergency Stop**: Press **Volume Down** at any time.
+```text
+python_app/
+├── main.py              # Main Kivy Entry Point & App Lifecycle
+├── buildozer.spec       # Android Compilation Config
+├── assets/              # Template images for OpenCV matching
+├── core/                # Business Logic
+│   ├── vision.py        # Robust Detection (Edges & Templates)
+│   ├── controller.py    # Hardware-level Gestures
+│   ├── wizard.py        # Auto-Calibration & JSON Config
+│   ├── vision_auto.py    # UI/Button DNA Scanner
+│   └── permissions.py   # Android Permission Links
+└── ui/
+    └── dashboard.py     # Professional Android Menu
+```
 
 ---
 
 ## 📝 License
-MIT License - Feel free to build upon this work.
+MIT License - Developed by the Bunny Runner community.
 
 ---
 **Made with ❤️ for the Bunny Runner Community**
