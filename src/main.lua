@@ -1,3 +1,7 @@
+-- 1. Compatibility Layer for different GG versions (Fail-Proof casing)
+if not gg.getscreenSize then gg.getscreenSize = gg.getScreenSize end
+if not gg.getpixel then gg.getpixel = gg.getPixel end
+
 -- Add the script's current folder to Lua's search path
 local scriptPath = gg.getFile():match("(.*/)")
 if scriptPath then
@@ -77,7 +81,7 @@ local lastChangeTime = os.time()
 local lastScreenHash = ""
 
 local function checkStuck()
-    local sw, sh = gg.getscreenSize()
+    local sw, sh = gg.getScreenSize()
     local currentHash = gg.getPixel(sw/2, sh/2)
     
     if currentHash == lastScreenHash then
@@ -96,7 +100,7 @@ end
 
 -- Startup Diagnostics
 local function checkSystem()
-    local sw, sh = gg.getscreenSize()
+    local sw, sh = gg.getScreenSize()
     if sw > sh then
         gg.alert("⚠️ LANDSCAPE DETECTED\nThis script is optimized for PORTRAIT mode. Please rotate your device.")
     end
@@ -122,7 +126,7 @@ local function performReset()
     -- GHOST TAP: Tap center until Path Color is detected (handles popups)
     if config.path_color or path_color then
         gg.toast("👻 GHOST TAP: Navigating through pop-ups...")
-        local sw, sh = gg.getscreenSize()
+        local sw, sh = gg.getScreenSize()
         local startTime = os.time()
         local targetColor = config.path_color or path_color
         
@@ -145,9 +149,9 @@ end
 local function runBotLogic()
     if not checkSystem() then return end
     
-    local sw, sh = gg.getscreenSize()
+    local sw, sh = gg.getScreenSize()
     current_state = STATE_WAITING
-    gg.toast("🐰 BunnyBot: Robust Learning Mode ON")
+    gg.toast("🐰 BunnyBot: Robust Safe-Start ON")
     gg.setVisible(false)
     
     local direction = "RIGHT"
@@ -156,14 +160,23 @@ local function runBotLogic()
     if not next(UI_LOCS) then UI_LOCS = vision_auto.autoLocate() end
     
     while true do
+        -- SAFE EXIT: Hold Volume Down / Press Volume Down to Terminate
+        if gg.isKeyPressed(gg.KEY_VOLUME_DOWN) then
+            gg.toast("🛑 Script Terminated by User")
+            gg.setVisible(true)
+            os.exit()
+        end
+
         if current_state == STATE_WAITING then
             -- Look for the blue 'PLAY' button (Welcome Page)
+            -- User specifically suggested 0.85 height for this
             local welcomePixel = gg.getPixel(sw / 2, sh * 0.85)
-            if isColorClose(welcomePixel, 0x2196F3, 30) then
+            if isColorClose(welcomePixel, 0x2196F3, 40) then
                 gg.toast("👋 Waiting for you to press PLAY...")
                 gg.sleep(1000)
             else
-                -- User started the game
+                -- User likely started the game
+                gg.sleep(1000) -- Wait for transition
                 current_state = STATE_LEARNING
             end
 
@@ -171,7 +184,7 @@ local function runBotLogic()
             path_color = wizard.passivePathGatherer()
             config.path_color = path_color
             current_state = STATE_RUNNING
-            gg.toast("🚀 Bot Logic ACTIVATED")
+            gg.toast("🚀 Running! Don't touch the screen.")
 
         elseif current_state == STATE_RUNNING then
             -- 1. Heartbeat Check
@@ -190,7 +203,9 @@ local function runBotLogic()
                 gg.sleep(2000)
                 
             elseif state == "WIN_SCREEN" or state == "GAME_OVER" or state == "LOSE_SCREEN" then
-                gg.toast("🏆/💩 Resetting to skip ads...")
+                -- Combined Victory/Defeat detection as per user feedback
+                -- Orange (FFAA00) or Green (8BC34A) or Red
+                gg.toast("� Level Ended. Resetting App...")
                 if config.autoReset then 
                     performReset() 
                     direction = "RIGHT"
@@ -210,12 +225,6 @@ local function runBotLogic()
                     gg.sleep(config.refractoryMs)
                 end
             end
-        end
-
-        if gg.isKeyPressed(gg.KEY_VOLUME_DOWN) then
-            gg.toast("⏸️ Stopped by User")
-            gg.setVisible(true)
-            break
         end
         gg.sleep(10)
     end

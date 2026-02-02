@@ -28,7 +28,7 @@ end
 
 function M.checkState()
     -- Get current screen size to adjust anchors if they were set for 1080p
-    local sw, sh = gg.getscreenSize()
+    local sw, sh = gg.getScreenSize()
     
     -- Heuristic check for each state
     for state, anchor in pairs(M.anchors) do

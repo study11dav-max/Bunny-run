@@ -7,7 +7,7 @@ end
 
 -- Performs a "Human-like" reset of the app to bypass ads without Root
 function M.humanResetApp(appIconX, appIconY)
-    local sw, sh = gg.getscreenSize()
+    local sw, sh = gg.getScreenSize()
     
     gg.toast("🖐️ Performing Human Reset...")
     
