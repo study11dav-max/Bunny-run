@@ -6,45 +6,38 @@ function M.humanResetApp(appIconX, appIconY)
     
     gg.toast("🖐️ Performing Human Reset...")
     
-    -- 1. Swipe up from bottom and HOLD to show Recent Apps
-    -- Start from very bottom, move to middle, and stay briefly
+    -- 1. Open Recents (Swipe up and HOLD)
     gg.gesture({
         {
             {x = sw / 2, y = sh - 10, t = 0},
-            {x = sw / 2, y = sh / 2, t = 500}
+            {x = sw / 2, y = sh / 2, t = 600}
         }
     })
     gg.sleep(1000)
     
-    -- 2. Swipe the app card to the RIGHT (or UP depending on OS) to close it
-    -- Note: Most modern Androids use Up swipe to close in recents. 
-    -- We can try Up first as it's more common.
+    -- 2. Swipe App Away (Swipe card OFF the screen)
+    -- Using a side swipe as per the user's refined logic
     gg.gesture({
         {
             {x = sw / 2, y = sh / 2, t = 0},
-            {x = sw / 2, y = 100, t = 300}
-        }
-    })
-    gg.sleep(800)
-    
-    -- 3. Click Home Button (Approximate center bottom)
-    -- In gesture navigation, a quick swipe up from bottom works.
-    gg.gesture({
-        {
-            {x = sw / 2, y = sh - 10, t = 0},
-            {x = sw / 2, y = sh - 100, t = 100}
+            {x = sw, y = sh / 2, t = 300}
         }
     })
     gg.sleep(1000)
     
-    -- 4. Click the App Icon on Home Screen (Calibrated by user)
+    -- 3. Click Home Button (Assumes bottom center)
+    gg.click({x = sw / 2, y = sh - 50})
+    gg.sleep(500)
+    
+    -- 4. Click the App Icon on Home Screen (Relaunch)
     if appIconX and appIconY and appIconX > 0 then
         gg.click({x = appIconX, y = appIconY})
+        gg.toast("🚀 Relaunching Bunny Runner...")
     else
-        gg.alert("⚠️ Home Screen App Icon not calibrated. Please calibrate in Advanced Settings.")
+        gg.alert("⚠️ Home Screen Icon not calibrated!")
     end
     
-    gg.sleep(5000) -- Wait for clean launch
+    gg.sleep(5000) -- Clean boot time
 end
 
 return M

@@ -46,29 +46,29 @@ local lastScreenHash = ""
 
 local function checkStuck()
     local sw, sh = gg.getScreenSize()
-    local currentHash = gg.getPixel(sw/2, sh/2) -- Middle pixel hash
+    local currentHash = gg.getPixel(sw/2, sh/2)
     
     if currentHash == lastScreenHash then
-        if os.time() - lastChangeTime > 15 then
-            gg.toast("⚠️ Game seems frozen. Emergency Resetting...")
-            if config.rootMode then reset.restartGame() else gestures.humanResetApp(config.appIconX, config.appIconY) end
+        if os.time() - lastChangeTime > 12 then -- 12 seconds heartbeat
+            gg.toast("⚠️ STUCK DETECTED. Emergency Resetting...")
+            performReset()
             lastChangeTime = os.time()
+            return true
         end
     else
         lastScreenHash = currentHash
         lastChangeTime = os.time()
     end
+    return false
 end
 
 -- Startup Diagnostics
 local function checkSystem()
-    -- Resolution Check
     local sw, sh = gg.getScreenSize()
     if sw > sh then
         gg.alert("⚠️ LANDSCAPE DETECTED\nThis script is optimized for PORTRAIT mode. Please rotate your device.")
     end
 
-    -- Accessibility Check (for No-Root)
     if not config.rootMode then
         local success = gg.gesture({{{x=1,y=1,t=0},{x=1,y=1,t=1}}})
         if success == false then
@@ -76,7 +76,6 @@ local function checkSystem()
             return false
         end
     end
-    
     return true
 end
 
@@ -93,46 +92,56 @@ end
 local function runBotLogic()
     if not checkSystem() then return end
     
-    gg.toast("🐰 BunnyBot Started!")
+    gg.toast("🐰 BunnyBot: Bulletproof Mode ON")
     gg.setVisible(false)
     
     local sw, sh = gg.getScreenSize()
     local direction = "RIGHT"
-    lastChangeTime = os.time() -- Reset heartbeat
+    lastChangeTime = os.time()
     
-    -- Cache UI locations
     if not next(UI_LOCS) then UI_LOCS = vision_auto.autoLocate() end
     
     while true do
-        checkStuck()
+        -- 1. Heartbeat Check (STUCK State)
+        if checkStuck() then
+            direction = "RIGHT"
+        end
+
+        -- 2. State Detection
         local state = vision.checkState()
         
         if state == "START_SCREEN" then
-            gg.toast("🏠 At Start Screen - Tapping Play")
+            -- SCANNING State
+            gg.toast("🔍 SCANNING: Play Button Detected")
+            gg.vibrate(200) -- Haptic feedback
+            
             local x = UI_LOCS.START_BTN and UI_LOCS.START_BTN.x or sw/2
             local y = UI_LOCS.START_BTN and UI_LOCS.START_BTN.y or sh*0.8
             gg.click({x=x, y=y})
             gg.sleep(2000)
             
-        elseif state == "WIN_SCREEN" or state == "GAME_OVER" or state == "LOSE_SCREEN" then
-            if config.autoReset then
-                performReset()
-                direction = "RIGHT"
-            else
-                break
-            end
-        end
+        elseif state == "WIN_SCREEN" then
+            -- VICTORY State
+            gg.toast("🏆 VICTORY: Resetting for next level...")
+            if config.autoReset then performReset() direction = "RIGHT" else break end
+            
+        elseif state == "GAME_OVER" or state == "LOSE_SCREEN" then
+            -- DEFEAT State
+            gg.toast("💩 DEFEAT: Resetting to skip ads...")
+            if config.autoReset then performReset() direction = "RIGHT" else break end
+            
+        elseif state == "IN_GAME" then
+            -- PLAYING State
+            if config.path_color then
+                local detectionY = sh * (config.detectionHeight / 100)
+                local checkX = (direction == "RIGHT") and (sw/2 + 150) or (sw/2 - 150)
+                local currentColor = gg.getPixel(checkX, detectionY)
 
-        -- ZigZag Logic
-        if config.path_color then
-            local detectionY = sh * (config.detectionHeight / 100)
-            local checkX = (direction == "RIGHT") and (sw/2 + 150) or (sw/2 - 150)
-            local currentColor = gg.getPixel(checkX, detectionY)
-
-            if math.abs(currentColor - config.path_color) > config.tolerance then
-                gg.click({x=sw/2, y=sh/2})
-                direction = (direction == "RIGHT") and "LEFT" or "RIGHT"
-                gg.sleep(config.refractoryMs)
+                if math.abs(currentColor - config.path_color) > config.tolerance then
+                    gg.click({x=sw/2, y=sh/2})
+                    direction = (direction == "RIGHT") and "LEFT" or "RIGHT"
+                    gg.sleep(config.refractoryMs)
+                end
             end
         end
 
