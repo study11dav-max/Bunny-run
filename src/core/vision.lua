@@ -18,6 +18,14 @@ M.anchors = {
     LOSE_SCREEN = {x = 540, y = 1450, color = 0x8BC34A, tolerance = 1000}
 }
 
+local function isColorClose(color1, color2, tolerance)
+    local r1, g1, b1 = (color1 >> 16) & 0xFF, (color1 >> 8) & 0xFF, color1 & 0xFF
+    local r2, g2, b2 = (color2 >> 16) & 0xFF, (color2 >> 8) & 0xFF, color2 & 0xFF
+    
+    local diff = math.abs(r1 - r2) + math.abs(g1 - g2) + math.abs(b1 - b2)
+    return diff < (tolerance or 60) -- Default tolerance 60 for RGB distance
+end
+
 function M.checkState()
     -- Get current screen size to adjust anchors if they were set for 1080p
     local sw, sh = gg.getScreenSize()
@@ -30,8 +38,8 @@ function M.checkState()
         
         local current = gg.getPixel(targetX, targetY)
         
-        -- Compare colors (using simple distance)
-        if math.abs((current & 0xFFFFFF) - (anchor.color & 0xFFFFFF)) < anchor.tolerance then
+        -- Fuzzy color matching
+        if isColorClose(current, anchor.color, anchor.tolerance) then
             return state
         end
     end

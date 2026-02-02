@@ -4,6 +4,7 @@ local vision = require("src.core.vision")
 local vision_auto = require("src.core.vision_auto")
 local reset = require("src.core.reset")
 local gestures = require("src.core.gestures")
+local permissions = require("src.core.permissions")
 
 -- Mock GG for testing
 if not gg then
@@ -13,7 +14,7 @@ if not gg then
         toast = print,
         sleep = function() end,
         click = function(t) print("Click", t.x, t.y) end,
-        gesture = function() print("Gesture performed") end,
+        gesture = function() print("Gesture performed"); return true end,
         isKeyPressed = function() return false end,
         setVisible = function() end,
         isVisible = function() return false end,
@@ -29,20 +30,54 @@ local UI_LOCS = {}
 -- Configuration State
 local config = {
     path_color = nil,
-    rx = 0, ry = 0, -- Legacy / Manual calibration
-    appIconX = 0, appIconY = 0, -- New Home Icon calibration
+    rx = 0, ry = 0,
+    appIconX = 0, appIconY = 0,
     ready = false,
     detectionHeight = 65,
     tolerance = 5000,
     refractoryMs = 150,
     autoReset = true,
-    rootMode = true -- Default to Root Mode
+    rootMode = true
 }
 
--- Load existing config...
-local savedConfig = wizard.loadConfig()
-if savedConfig then
-    for k, v in pairs(savedConfig) do config[k] = v end
+-- Heartbeat Logic
+local lastChangeTime = os.time()
+local lastScreenHash = ""
+
+local function checkStuck()
+    local sw, sh = gg.getScreenSize()
+    local currentHash = gg.getPixel(sw/2, sh/2) -- Middle pixel hash
+    
+    if currentHash == lastScreenHash then
+        if os.time() - lastChangeTime > 15 then
+            gg.toast("⚠️ Game seems frozen. Emergency Resetting...")
+            if config.rootMode then reset.restartGame() else gestures.humanResetApp(config.appIconX, config.appIconY) end
+            lastChangeTime = os.time()
+        end
+    else
+        lastScreenHash = currentHash
+        lastChangeTime = os.time()
+    end
+end
+
+-- Startup Diagnostics
+local function checkSystem()
+    -- Resolution Check
+    local sw, sh = gg.getScreenSize()
+    if sw > sh then
+        gg.alert("⚠️ LANDSCAPE DETECTED\nThis script is optimized for PORTRAIT mode. Please rotate your device.")
+    end
+
+    -- Accessibility Check (for No-Root)
+    if not config.rootMode then
+        local success = gg.gesture({{{x=1,y=1,t=0},{x=1,y=1,t=1}}})
+        if success == false then
+            permissions.requestAccessibility()
+            return false
+        end
+    end
+    
+    return true
 end
 
 -- Unified Reset Function
@@ -56,23 +91,24 @@ end
 
 -- Bot Logic
 local function runBotLogic()
+    if not checkSystem() then return end
+    
     gg.toast("🐰 BunnyBot Started!")
     gg.setVisible(false)
     
     local sw, sh = gg.getScreenSize()
     local direction = "RIGHT"
+    lastChangeTime = os.time() -- Reset heartbeat
     
-    -- Cache UI locations if not already found
-    if not next(UI_LOCS) then
-        UI_LOCS = vision_auto.autoLocate()
-    end
+    -- Cache UI locations
+    if not next(UI_LOCS) then UI_LOCS = vision_auto.autoLocate() end
     
     while true do
+        checkStuck()
         local state = vision.checkState()
         
         if state == "START_SCREEN" then
             gg.toast("🏠 At Start Screen - Tapping Play")
-            -- Use UI_LOCS if found, otherwise fallback
             local x = UI_LOCS.START_BTN and UI_LOCS.START_BTN.x or sw/2
             local y = UI_LOCS.START_BTN and UI_LOCS.START_BTN.y or sh*0.8
             gg.click({x=x, y=y})
@@ -130,12 +166,13 @@ while true do
             wizard.saveConfig(config.path_color, config.rx, config.ry, config)
             
         elseif choice == 5 then
-            gg.alert("🏠 GO TO HOME SCREEN\nHover finger over Bunny Runner icon.\nPress Volume Up to calibrate.")
-            while not gg.isKeyPressed(gg.KEY_VOLUME_UP) do gg.sleep(100) end
-            local pos = gg.getPointer() -- Assuming environment supports this or simple manual input
-            config.appIconX, config.appIconY = 540, 1200 -- Placeholder for logic
-            gg.toast("✅ Icon Position Saved!")
-            wizard.saveConfig(config.path_color, config.rx, config.ry, config)
+            gg.alert("🏠 NO-ROOT CALIBRATION:\n1. Go to your Home Screen.\n2. Note the X,Y coordinates of the Bunny Runner icon.\n3. (Or use GG's 'Get Coordinate' tool if available).\n\nPress OK to enter coordinates.")
+            local result = gg.prompt({"Icon X (0-1080)", "Icon Y (0-2400)"}, {config.appIconX or 540, config.appIconY or 1200}, {"number", "number"})
+            if result then
+                config.appIconX, config.appIconY = tonumber(result[1]), tonumber(result[2])
+                gg.toast("✅ Icon Position Saved!")
+                wizard.saveConfig(nil, nil, nil, config) -- Custom save
+            end
             
         elseif choice == 6 then
             config.autoReset = not config.autoReset
