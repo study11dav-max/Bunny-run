@@ -1,16 +1,23 @@
 [app]
-title = Bunny Bot
+title = BunnyBot Pro
 package.name = bunnybot
 package.domain = org.bunnybot
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
-version = 1.0
+version = 1.0.0
 
-# Requirements
+# Critical Requirements
 requirements = python3, kivy, numpy, python-opencv-lite, android
 
-# Permissions
-android.permissions = SYSTEM_ALERT_WINDOW, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, INTERNET
+# Permissions for Zero-PC Automation
+android.permissions = SYSTEM_ALERT_WINDOW, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
+android.api = 31
+android.minapi = 21
+android.sdk = 33
+
+# Features
+android.entrypoint = main.py
+android.wakelock = True
 
 # (list) Supported orientations
 orientation = portrait

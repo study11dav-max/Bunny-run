@@ -25,19 +25,25 @@ class GameVision:
                 print(f"⚠️ Warning: Template {filename} not found in {self.templates_dir}")
 
     def detect_state(self, screenshot):
-        """Detects which screen we are on using 90% accuracy threshold."""
+        """Detects screen state using Multi-Scale Template Matching."""
         if not self.templates:
             return "IN_GAME", None
 
-        # Convert screenshot to grayscale
         gray_frame = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
         
         for name, template in self.templates.items():
-            res = cv2.matchTemplate(gray_frame, template, cv2.TM_CCOEFF_NORMED)
-            _, max_val, _, max_loc = cv2.minMaxLoc(res)
-            
-            if max_val > 0.9: # 90% match
-                return name, max_loc
+            # Multi-Scale: Scan at 80%, 90%, and 100% of original template size
+            # This handles different phone resolutions/DPIs
+            for scale in [0.8, 0.9, 1.0]:
+                width = int(template.shape[1] * scale)
+                height = int(template.shape[0] * scale)
+                resized = cv2.resize(template, (width, height), interpolation=cv2.INTER_AREA)
+                
+                res = cv2.matchTemplate(gray_frame, resized, cv2.TM_CCOEFF_NORMED)
+                _, max_val, _, max_loc = cv2.minMaxLoc(res)
+                
+                if max_val > 0.9: # 90% confidence threshold
+                    return name, max_loc
         
         return "IN_GAME", None
 
