@@ -4,16 +4,18 @@ function M.showDashboard(configState)
     -- Check what steps are done
     local step1 = configState.path_color and "✅" or "❌"
     local step2 = (configState.rx > 0) and "✅" or "❌"
+    local ghost = configState.autoReset and "ON" or "OFF"
     
     local status = string.format(
-        "--- SETUP STATUS ---\n1. Path Color: %s\n2. Restart Button: %s\n--------------------",
-        step1, step2
+        "--- SETUP STATUS ---\n1. Path Color: %s\n2. Restart Button: %s\n3. Ghost Reset: %s\n--------------------",
+        step1, step2, ghost
     )
 
     local menu = gg.choice({
-        "🚀 RUN BOT (Ready: " .. (configState.ready and "YES" or "NO") .. ")",
+        "🚀 RUN BOT",
         "🎨 Step 1: Calibrate Path",
         "💀 Step 2: Calibrate Restart",
+        "👻 Toggle Ghost Reset [" .. ghost .. "]",
         "📖 View Tutorial / Help",
         "⚙️ Advanced Settings",
         "❌ Close Panel"
@@ -24,37 +26,39 @@ end
 
 function M.showTutorial()
     gg.alert([[
-📖 QUICK START GUIDE:
-1. Start a match and Pause. Click 'Step 1' while Bunny is on the track.
-2. Let the Bunny die. When the 'Restart' button appears, click 'Step 2'.
-3. Use the crosshair to mark the button.
-4. Click 'RUN BOT'.
+📖 GHOST RESET GUIDE:
+• This bot uses the "Ghost" method to bypass ads.
+• When you Win or Lose, the app automatically restarts.
+• This ensures 0 ads and infinite loops!
 
-💡 PRO TIPS:
-• Turn OFF Battery Saver mode for smooth frame rates
-• If Bunny turns too late, re-calibrate Step 1 slightly higher
-• The 60-70% screen height is the "Sweet Spot" for detection
-• Emergency Stop: Press Volume Down during a run
+💡 QUICK START:
+1. Calibrate Path Color while playing.
+2. Toggle Ghost Reset to ON.
+3. Click 'RUN BOT'.
 
 🔧 TECHNICAL:
-• Uses Luminance Threshold (not exact color matching)
-• Detects "darker" pixels as walls/fences
-• Auto-restarts on death
+• Requires Shell/Root for app restarting.
+• Uses Pixel Anchors for state detection.
+• Emergency Stop: Volume Down.
     ]])
 end
 
 function M.showAdvancedSettings(config)
+    local ghost = config.autoReset and "ON" or "OFF"
     local result = gg.prompt({
-        "Detection Height (% from top, 60-70 recommended)",
-        "Color Tolerance (5-15 recommended)",
-        "Refractory Period (ms, 100-200 recommended)"
+        "Detection Height (% from top)",
+        "Color Tolerance (Luminance)",
+        "Refractory Period (ms)",
+        "Auto-Reset (1=ON, 0=OFF)"
     }, {
         config.detectionHeight or 65,
         config.tolerance or 5000,
-        config.refractoryMs or 150
+        config.refractoryMs or 150,
+        config.autoReset and 1 or 0
     }, {
         "number",
         "number", 
+        "number",
         "number"
     })
     
@@ -62,6 +66,7 @@ function M.showAdvancedSettings(config)
         config.detectionHeight = tonumber(result[1])
         config.tolerance = tonumber(result[2])
         config.refractoryMs = tonumber(result[3])
+        config.autoReset = (tonumber(result[4]) == 1)
         gg.toast("⚙️ Settings Updated!")
     end
     

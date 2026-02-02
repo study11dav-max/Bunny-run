@@ -1,5 +1,7 @@
 local wizard = require("src.core.wizard")
 local dashboard = require("src.ui.dashboard")
+local vision = require("src.core.vision")
+local reset = require("src.core.reset")
 
 -- Mock GG for testing
 if not gg then
@@ -26,7 +28,8 @@ local config = {
     ready = false,
     detectionHeight = 65,
     tolerance = 5000,
-    refractoryMs = 150
+    refractoryMs = 150,
+    autoReset = true -- New toggle for Ghost Reset
 }
 
 -- Load existing config if available
@@ -42,38 +45,50 @@ if savedConfig then
 end
 
 -- Bot Logic
-local function isDead()
-    local c = gg.getPixel(config.rx, config.ry)
-    if not config.path_color then return false end
-    return math.abs(c - config.path_color) > 10000
-end
-
 local function runBotLogic()
     gg.toast("🐰 BunnyBot Started!")
     gg.setVisible(false)
     
     local sw, sh = gg.getScreenSize()
     local direction = "RIGHT"
-    local detectionY = sh * (config.detectionHeight / 100)
     
     while true do
-        -- Check for Death & Auto-Restart
-        if isDead() then
-            gg.toast("💀 Restarting...")
-            gg.click({x=config.rx, y=config.ry})
+        -- High-level State Detection
+        local state = vision.checkState()
+        
+        if state == "START_SCREEN" then
+            gg.toast("🏠 At Start Screen - Tapping Play")
+            gg.click({x=sw/2, y=sh*0.8}) -- Approximate Play Button
             gg.sleep(2000)
-            direction = "RIGHT" -- Reset direction
+            
+        elseif state == "WIN_SCREEN" or state == "GAME_OVER" then
+            if config.autoReset then
+                reset.restartGame()
+                direction = "RIGHT" -- Reset direction for new run
+            else
+                break -- Exit or wait for user if autoReset is off
+            end
+            
+        elseif state == "LOSE_SCREEN" then
+            -- On the "Do you want to continue?" screen
+            -- Instead of clicking "No Thanks" and hitting an ad on the next screen,
+            -- we can either wait or just reset here too.
+            if config.autoReset then
+                reset.restartGame()
+            end
         end
 
-        -- ZigZag Detection (State-Locked)
-        local checkX = (direction == "RIGHT") and (sw/2 + 150) or (sw/2 - 150)
-        local currentColor = gg.getPixel(checkX, detectionY)
+        -- ZigZag Detection (Only runs if path_color is calibrated)
+        if config.path_color then
+            local detectionY = sh * (config.detectionHeight / 100)
+            local checkX = (direction == "RIGHT") and (sw/2 + 150) or (sw/2 - 150)
+            local currentColor = gg.getPixel(checkX, detectionY)
 
-        -- Luminance/Darkness check (not exact color)
-        if math.abs(currentColor - config.path_color) > config.tolerance then
-            gg.click({x=sw/2, y=sh/2})
-            direction = (direction == "RIGHT") and "LEFT" or "RIGHT"
-            gg.sleep(config.refractoryMs)
+            if math.abs(currentColor - config.path_color) > config.tolerance then
+                gg.click({x=sw/2, y=sh/2})
+                direction = (direction == "RIGHT") and "LEFT" or "RIGHT"
+                gg.sleep(config.refractoryMs)
+            end
         end
 
         -- Emergency Exit
@@ -94,11 +109,7 @@ while true do
         
         if choice == 1 then
             -- RUN BOT
-            if config.ready then
-                runBotLogic()
-            else
-                gg.alert("🚫 Please complete Steps 1 and 2 first!")
-            end
+            runBotLogic()
             
         elseif choice == 2 then
             -- Step 1: Calibrate Path
@@ -113,15 +124,20 @@ while true do
             config.ready = (config.path_color and config.rx > 0)
             
         elseif choice == 4 then
+            -- Toggle Ghost Reset
+            config.autoReset = not config.autoReset
+            wizard.saveConfig(config.path_color, config.rx, config.ry, config)
+            
+        elseif choice == 5 then
             -- Tutorial
             dashboard.showTutorial()
             
-        elseif choice == 5 then
+        elseif choice == 6 then
             -- Advanced Settings
             config = dashboard.showAdvancedSettings(config)
             wizard.saveConfig(config.path_color, config.rx, config.ry, config)
             
-        elseif choice == 6 then
+        elseif choice == 7 then
             -- Exit
             os.exit()
         end
