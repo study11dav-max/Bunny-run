@@ -1,76 +1,68 @@
-# 🐰 Bunny Bot: Standalone Python APK (Zero-PC Release)
+# 🐰 Bunny Bot: Pure Python Edition (Google Colab Build)
 
-A professional, standalone Android automation app for **Bunny Runner 3D**, built with Python, Kivy, and OpenCV. This version replaces the legacy Lua codebase, eliminating the need for GameGuardian and offering a superior, one-click experience.
-
----
-
-## ✨ Features (The Python Suite)
-
-- **🖼️ OpenCV Vision Engine**: Uses **Template Matching** (90% confidence) for reliable state detection (Starting, Winning, Ending).
-- **🏳️‍🌈 White Fence Sensors**: High-stability path detection using **Canny Edge Detection** instead of fragile pixel-color matching.
-- **📱 Standalone Controller**: A hardware-level interface for Android that performs taps and "Human-Like" ad-dodging swipes directly via shell commands.
-- **🧙 Intelligent Calibration**: Built-in Python wizard for passive path DNA sampling and automated UI scanning.
-- **🛑 Safe-Exit Kill Switch**: One-tap shutdown and emergency stop (Volume Down support).
+A robust, standalone Android automation app for **Bunny Runner 3D**, built with Python, Kivy, and OpenCV. This version is optimized for stability and battery life.
 
 ---
 
-## 🏗️ Architecture
-
-The app is built using a modular Python architecture designed for performance and reliability on Android:
-
-### Core Modules (`core/`)
-- **`vision.py`**: The "Eyes". Implements Template Matching and Canny edge analysis.
-- **`controller.py`**: The "Hands". Handles shell-based gestures and ad-dodge resets.
-- **`wizard.py`**: The "Brain". Handles configuration persistence (JSON) and calibration.
-- **`vision_auto.py`**: The "Scanner". Automatically identifies UI button positions.
-- **`permissions.py`**: The "Guard". Manages Accessibility and Overlay setting links.
-
-### UI Layer (`ui/`)
-- **`dashboard.py`**: Professional Kivy-based menu with real-time status and advanced settings.
+## ✨ Key Features
+- **🖼️ Smart Vision System**: Uses `cv2.matchTemplate` with dynamic loading to "see" the game.
+- **🔋 Battery Optimized**: Runs vision checks on a 0.5s interval (Clock) instead of every frame.
+- **📱 Floating UI**: All controls overlay the game using a robust `FloatLayout` architecture.
+- **☁️ Google Colab Build**: No complex local setup required. Build your APK in the cloud.
 
 ---
 
-## 🚀 Quick Start (For Developers)
+## 🛠️ How to Build (Google Colab)
 
-### 1. Requirements
-- **Python 3.10+**
-- **Kivy**
-- **OpenCV (cv2)**
-- **Numpy**
+We have removed the GitHub Actions workflow in favor of a manual, controllable Colab build.
 
-### 2. Run Locally (Testing)
-1. Clone the repository.
-2. Run `python main.py`.
-
-### 3. Build the APK
-Use **Buildozer** to compile for Android:
-```bash
-buildozer android debug deploy run
-```
+1. **Download this Repository**.
+2. **Open Google Colab**: [colab.research.google.com](https://colab.research.google.com/).
+3. **Upload Files**: Upload the following to the Colab runtime:
+    - `colab_build.ipynb`
+    - `main.py`
+    - `buildozer.spec`
+    - `core/` folder
+    - `ui/` folder
+    - `templates/` folder
+4. **Open `colab_build.ipynb`** and run the cells in order.
+5. **Download APK**: Once finished, download your APK from the `bin/` directory.
 
 ---
 
-## 📁 Final Project Structure
+## 🏗️ New Architecture
+
+### 1. Vision (`core/vision.py`)
+- **Logic**: Grayscale Template Matching (Threshold: 0.85).
+- **Templates**: All reference images are stored in `templates/`.
+- **Dynamic**: Automatically loads any `.png` found in the folder.
+
+### 2. UI (`main.py` & `ui/dashboard.py`)
+- **Root**: `FloatLayout`.
+- **Overlay**: The dashboard sits at the bottom 40% of the screen.
+
+### 3. Controller (`core/controller.py`)
+- **Persistent Shell**: Maintains an open connection to the Android shell for instant tap response.
+
+---
+
+## 📁 Project Structure
 
 ```text
 .
-├── main.py              # Main Kivy Entry Point & App Lifecycle
-├── buildozer.spec       # Android Compilation Config
-├── assets/              # Template images for OpenCV matching
+├── colab_build.ipynb    # Build Script
+├── main.py              # FloatLayout App Entry
+├── buildozer.spec       # Build Configuration
+├── templates/           # Reference Images (starting_btn.png, etc.)
 ├── core/                # Business Logic
-│   ├── vision.py        # Robust Detection (Edges & Templates)
-│   ├── controller.py    # Hardware-level Gestures
-│   ├── wizard.py        # Auto-Calibration & JSON Config
-│   ├── vision_auto.py    # UI/Button DNA Scanner
-│   └── permissions.py   # Android Permission Links
+│   ├── vision.py        # BunnyVision (Template Matching)
+│   ├── controller.py    # Persistent Shell Controller
+│   └── ...
 └── ui/
-    └── dashboard.py     # Professional Android Menu
+    └── dashboard.py     # Menu UI
 ```
 
 ---
 
 ## 📝 License
 MIT License - Developed by the Bunny Runner community.
-
----
-**Made with ❤️ for the Bunny Runner Community**

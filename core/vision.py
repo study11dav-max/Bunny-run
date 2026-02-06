@@ -2,51 +2,95 @@ import cv2
 import numpy as np
 import os
 
-class GameVision:
-    def __init__(self, templates_dir="assets/"):
+class BunnyVision:
+    def __init__(self, templates_dir="templates/"):
         self.templates_dir = templates_dir
-        # Load screenshots as reference templates (must be in assets/ folder)
         self.templates = {}
         self.load_templates()
 
     def load_templates(self):
-        """Loads reference images for state detection."""
-        template_files = {
-            'play': 'starting_btn.jpg',
-            'next': 'winning_btn.jpg',
-            'try_again': 'ending_re.jpg'
-        }
-        for name, filename in template_files.items():
-            path = os.path.join(self.templates_dir, filename)
-            if os.path.exists(path):
-                # Load in grayscale for faster matching
-                self.templates[name] = cv2.imread(path, 0)
-            else:
-                print(f"⚠️ Warning: Template {filename} not found in {self.templates_dir}")
+        """Loads all .png images from the templates directory."""
+        if not os.path.exists(self.templates_dir):
+            print(f"⚠️ Warning: Templates directory '{self.templates_dir}' not found.")
+            return
 
-    def detect_state(self, screenshot):
-        """Detects screen state using Multi-Scale Template Matching."""
-        if not self.templates:
+        for f in os.listdir(self.templates_dir):
+            if f.endswith(".png"):
+                path = os.path.join(self.templates_dir, f)
+                # Load in grayscale (0) for performance
+                img = cv2.imread(path, 0)
+                if img is not None:
+                    # Key is filename without extension (e.g., 'starting_btn')
+                    key = os.path.splitext(f)[0]
+                    self.templates[key] = img
+                    print(f"✅ Loaded template: {key}")
+                else:
+                    print(f"❌ Failed to load: {path}")
+
+    def find_match(self, screen_gray, template_key, threshold=0.85):
+        """
+        Returns (x, y) center coordinates if match found, else None.
+        args:
+            screen_gray: Grayscale screenshot
+            template_key: Key in self.templates dictionary
+            threshold: Confidence threshold (default 0.85)
+        """
+        template = self.templates.get(template_key)
+        if template is None:
+            return None
+
+        # The Magic: Match Template
+        # TM_CCOEFF_NORMED is robust against lighting differences
+        res = cv2.matchTemplate(screen_gray, template, cv2.TM_CCOEFF_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+        if max_val >= threshold:
+            # Calculate center of the found button
+            h, w = template.shape
+            center_x = max_loc[0] + w // 2
+            center_y = max_loc[1] + h // 2
+            return (center_x, center_y)
+        
+        return None
+
+    def get_current_state(self, screenshot):
+        """
+        Determines the current game screen based on visible templates.
+        Returns: (state_name, coordinates) or ("IN_GAME", None)
+        """
+        if screenshot is None:
             return "IN_GAME", None
 
-        gray_frame = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
-        
-        for name, template in self.templates.items():
-            # Multi-Scale: Scan at 80%, 90%, and 100% of original template size
-            # This handles different phone resolutions/DPIs
-            for scale in [0.8, 0.9, 1.0]:
-                width = int(template.shape[1] * scale)
-                height = int(template.shape[0] * scale)
-                resized = cv2.resize(template, (width, height), interpolation=cv2.INTER_AREA)
-                
-                res = cv2.matchTemplate(gray_frame, resized, cv2.TM_CCOEFF_NORMED)
-                _, max_val, _, max_loc = cv2.minMaxLoc(res)
-                
-                if max_val > 0.9: # 90% confidence threshold
-                    return name, max_loc
-        
-        return "IN_GAME", None
+        # Convert screen to grayscale once
+        screen_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
 
+        # Check for known states
+        # Map template names to state logic
+        # e.g. 'starting_btn' -> 'start'
+        
+        # Priority checks
+        if "starting_btn" in self.templates:
+            match = self.find_match(screen_gray, "starting_btn")
+            if match:
+                return "start", match
+
+        if "winning_btn" in self.templates:
+            match = self.find_match(screen_gray, "winning_btn")
+            if match:
+                return "win", match
+
+        if "ending_btn" in self.templates:
+            match = self.find_match(screen_gray, "ending_btn")
+            if match:
+                return "end", match
+                
+        if "try_again" in self.templates: # Fallback if user kept old name
+             match = self.find_match(screen_gray, "try_again")
+             if match:
+                 return "end", match
+
+        return "IN_GAME", None
+        
     def find_path_edge(self, screenshot):
         """Uses Canny Edge Detection to find the white fences."""
         # Convert to grayscale
@@ -55,11 +99,3 @@ class GameVision:
         # Thresh 50-150 is a good baseline for bright white fences
         edges = cv2.Canny(gray, 50, 150)
         return edges
-
-    def check_fence_collision(self, edges, x, y):
-        """Checks if a specific point (x, y) contains an edge (fence)."""
-        # Ensure coordinates are within image bounds
-        h, w = edges.shape
-        if 0 <= x < w and 0 <= y < h:
-            return edges[y, x] > 0
-        return False

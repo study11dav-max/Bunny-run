@@ -3,7 +3,7 @@ title = BunnyBot Pro
 package.name = bunnybot
 package.domain = org.bunnybot
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas
+source.include_exts = py,png,jpg,kv,atlas,json
 version = 1.0.0
 
 # Critical Requirements

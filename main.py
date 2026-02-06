@@ -1,49 +1,58 @@
 import cv2
 import time
 import os
-import threading
 from kivy.app import App
-from kivy.uix.screenmanager import ScreenManager, Screen
-from core.vision import GameVision
+from kivy.uix.floatlayout import FloatLayout
+from kivy.clock import Clock
+from core.vision import BunnyVision
 from core.controller import AndroidController
 from core.wizard import Wizard
 from core.vision_auto import VisionAuto
 from core.permissions import Permissions
 from ui.dashboard import Dashboard
 
-class MainScreen(Screen):
+class BunnyRoot(FloatLayout):
     def __init__(self, app, **kwargs):
         super().__init__(**kwargs)
         self.app = app
+        # Dashboard is a child of the FloatLayout
         self.dashboard = Dashboard(
             config=self.app.config_data,
             on_run=self.app.start_bot,
             on_calibrate=self.app.calibrate_path,
-            on_scan=self.app.scan_ui
+            on_scan=self.app.scan_ui,
+            size_hint=(1, 0.4), # Occupy bottom 40% of screen
+            pos_hint={'x': 0, 'y': 0}
         )
         self.add_widget(self.dashboard)
 
 class BunnyBotApp(App):
     def build(self):
         self.config_data = Wizard().load_config() or Wizard().get_default_config()
-        self.vision = GameVision()
+        self.vision = BunnyVision() # New Vision Class
         self.controller = AndroidController()
         self.running = False
         
-        self.sm = ScreenManager()
-        self.sm.add_widget(MainScreen(self, name='main'))
-        return self.sm
+        # Root is now a FloatLayout
+        self.root_widget = BunnyRoot(self)
+        return self.root_widget
 
     def start_bot(self, instance):
         if not self.running:
             self.running = True
-            threading.Thread(target=self.bot_loop, daemon=True).start()
-            print("🚀 Bot thread started")
+            print("🚀 Bot started (Clock scheduled)")
+            # Schedule vision check every 0.5 seconds
+            self.bot_event = Clock.schedule_interval(self.bot_loop, 0.5)
         else:
             self.running = False
             print("🛑 Bot stopped")
+            if hasattr(self, 'bot_event'):
+                self.bot_event.cancel()
 
     def calibrate_path(self, instance):
+        # Calibration usually needs a thread as it might be blocking or long-running
+        # For now, keeping it simple or off-thread if possible, but threading is safer for heavy tasks
+        import threading
         threading.Thread(target=self._do_calibrate, daemon=True).start()
 
     def _do_calibrate(self):
@@ -52,6 +61,7 @@ class BunnyBotApp(App):
         Wizard().save_config(self.config_data)
 
     def scan_ui(self, instance):
+        import threading
         threading.Thread(target=self._do_scan, daemon=True).start()
 
     def _do_scan(self):
@@ -59,25 +69,42 @@ class BunnyBotApp(App):
 
     def capture_screen(self):
         """Native screen capture integration"""
+        # Note: screencap is slow. 
+        # In a real optimized scenario, we'd use a faster method, 
+        # but for this refactor we keep it simple as requested.
         os.system("screencap -p /sdcard/screen.png")
         return cv2.imread("/sdcard/screen.png")
 
-    def bot_loop(self):
-        while self.running:
-            screen = self.capture_screen()
-            if screen is not None:
-                state, coords = self.vision.detect_state(screen)
-                if state == "play":
-                    self.controller.tap(coords[0], coords[1])
-                elif state == "next" or state == "try_again":
-                    self.controller.swipe_to_close()
-                    self.controller.relaunch_game()
-                    time.sleep(6)
-                elif state == "IN_GAME":
-                    edges = self.vision.find_path_edge(screen)
-                    # Logic using Canny edges...
-                    
-            time.sleep(0.1)
+    def bot_loop(self, dt):
+        """
+        Main Loop called by Clock every 0.5s.
+        dt: delta time (required by Clock)
+        """
+        if not self.running:
+            return
+
+        screen = self.capture_screen()
+        if screen is not None:
+            # New get_current_state method
+            state, coords = self.vision.get_current_state(screen)
+            
+            if state == "start": # Mapped from starting_btn
+                print(f"Found START at {coords}")
+                self.controller.tap(coords[0], coords[1])
+            
+            elif state == "win" or state == "end": # Mapped from winning/ending_btn
+                print(f"Found END/WIN at {coords}")
+                self.controller.swipe_to_close()
+                self.controller.relaunch_game()
+                # Pause the clock for a bit to let game reload? 
+                # With Clock, we just skip checks if we used time.sleep, but here we can't sleep the main thread.
+                # ideally we count frames. For now, simple logic acts immediately.
+            
+            elif state == "IN_GAME":
+                # Only check pathing if we are definitely playing
+                edges = self.vision.find_path_edge(screen)
+                # Logic using Canny edges...
+                pass
 
 if __name__ == "__main__":
     BunnyBotApp().run()
