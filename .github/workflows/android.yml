@@ -15,6 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Buildozer
+        uses: actions/cache@v3
+        with:
+          path: |
+            .buildozer
+            ~/.cache/pip
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-buildozer-
+
       - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
         with:
