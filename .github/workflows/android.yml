@@ -18,7 +18,7 @@ jobs:
       - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
         with:
-          command: buildozer android release
+          command: buildozer android debug
           repository_root: .
         env:
           USER: root
@@ -26,6 +26,9 @@ jobs:
       - name: Fix permissions for cleanup
         if: always()
         run: sudo chown -R $USER:$USER .
+
+      - name: List Bin Directory (Debug)
+        run: ls -R bin/ || echo "bin directory not found"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
