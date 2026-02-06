@@ -1,14 +1,18 @@
 import os
 import time
 import subprocess
+from typing import Optional, Any
 
 class AndroidController:
     def __init__(self, package_name="com.bunny.runner3D.dg"):
         self.package_name = package_name
+        self.shell: Optional[subprocess.Popen[str]] = None
+        
         # Cleanup old shell if needed
-        if hasattr(self, 'shell') and self.shell:
+        old_shell = getattr(self, 'shell', None)
+        if old_shell is not None:
             try:
-                self.shell.kill()
+                old_shell.kill()
             except Exception:
                 pass
 
@@ -34,15 +38,18 @@ class AndroidController:
         for attempt in range(max_retries + 1):
             try:
                 # 1. Check if shell exists and is running
-                if not self.shell or self.shell.poll() is not None:
+                shell = self.shell
+                if shell is None or shell.poll() is not None:
                     self.__init__(self.package_name)
+                    shell = self.shell
                 
-                if not self.shell or self.shell.stdin is None:
+                if shell is None:
                     raise BrokenPipeError("Shell not available")
-
-                # 2. Capture local ref for thread safety
-                stdin = self.shell.stdin
                 
+                stdin = shell.stdin
+                if stdin is None:
+                    raise BrokenPipeError("Shell stdin is not available")
+
                 # 3. Write command
                 stdin.write(cmd + "\n")
                 stdin.flush()
