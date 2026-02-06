@@ -5,32 +5,56 @@ import subprocess
 class AndroidController:
     def __init__(self, package_name="com.bunny.runner3D.dg"):
         self.package_name = package_name
+        # Cleanup old shell if needed
+        if hasattr(self, 'shell') and self.shell:
+            try:
+                self.shell.kill()
+            except Exception:
+                pass
+
         # Start a persistent shell process
-        self.shell = subprocess.Popen(
-            ['sh'],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            text=True,
-            bufsize=1
-        )
+        try:
+            self.shell = subprocess.Popen(
+                ['sh'],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                bufsize=1
+            )
+        except FileNotFoundError:
+            print("⚠️ 'sh' not found. Fallback to os.system will fail significantly.")
+            # Create a dummy object or handle gracefully if running on Windows without sh
+            self.shell = None
 
     def _run_cmd(self, cmd):
         """Writes a command to the persistent shell's stdin."""
-        try:
-            if self.shell.poll() is not None:
-                # Restart shell if it died
-                self.__init__(self.package_name)
-            
-            if self.shell.stdin is None:
-                raise BrokenPipeError("Shell stdin is not available")
+        # Retry loop to handle shell restarts
+        max_retries = 1
+        for attempt in range(max_retries + 1):
+            try:
+                # 1. Check if shell exists and is running
+                if not self.shell or self.shell.poll() is not None:
+                    self.__init__(self.package_name)
+                
+                if not self.shell or self.shell.stdin is None:
+                    raise BrokenPipeError("Shell not available")
 
-            self.shell.stdin.write(cmd + "\n")
-            # Flushing is critical for the command to execute immediately
-            self.shell.stdin.flush()
-        except BrokenPipeError:
-            # Handle broken pipe if shell crashes
-            self.__init__(self.package_name)
+                # 2. Capture local ref for thread safety
+                stdin = self.shell.stdin
+                
+                # 3. Write command
+                stdin.write(cmd + "\n")
+                stdin.flush()
+                return # Success
+
+            except (BrokenPipeError, AttributeError, OSError) as e:
+                print(f"⚠️ Shell error (attempt {attempt}): {e}")
+                if attempt < max_retries:
+                    # Force restart before retry
+                    self.__init__(self.package_name)
+                else:
+                    print(f"❌ Command dropped: {cmd}")
 
     def tap(self, x, y):
         """Native tap via persistent shell."""
