@@ -15,15 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Buildozer
-        uses: actions/cache@v3
+      - name: Cache Buildozer and Android Dependencies
+        uses: actions/cache@v4
         with:
           path: |
             .buildozer
+            ~/.buildozer
+            ~/.gradle
             ~/.cache/pip
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          key: ${{ runner.os }}-build-v1-${{ hashFiles('buildozer.spec') }}
           restore-keys: |
-            ${{ runner.os }}-buildozer-
+            ${{ runner.os }}-build-v1-
 
       - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
